@@ -53,17 +53,33 @@ cd estudio
 
 ### 2. Configurar variables de entorno
 
+**Raíz del proyecto** (`.env`):
+Copia el archivo de ejemplo y configura tus credenciales:
+
+```bash
+cp .env.example .env
+```
+
+Edita `.env` con tus credenciales:
+```env
+# PostgreSQL Database Configuration
+POSTGRES_DB=crm_contable
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=TU_PASSWORD_SEGURO_AQUI  # ⚠️ Cambia esto
+POSTGRES_PORT=5432
+```
+
 **Backend** (`backend/.env`):
 ```env
-# Database
+# Database (debe coincidir con el archivo .env de la raíz)
 DB_HOST=localhost
 DB_PORT=5432
 DB_USERNAME=postgres
-DB_PASSWORD=postgres
-DB_DATABASE=crm_db
+DB_PASSWORD=TU_PASSWORD_SEGURO_AQUI  # ⚠️ Mismo password que arriba
+DB_DATABASE=crm_contable
 
 # JWT
-JWT_SECRET=tu_secreto_super_seguro_aqui
+JWT_SECRET=tu_secreto_jwt_super_seguro_aqui_min_32_caracteres  # ⚠️ Cambia esto
 JWT_EXPIRES_IN=7d
 
 # Server
@@ -75,9 +91,12 @@ PORT=3000
 VITE_API_URL=http://localhost:3000
 ```
 
+⚠️ **IMPORTANTE**: Nunca subas archivos `.env` a GitHub. Ya están en `.gitignore`.
+
 ### 3. Levantar la base de datos
 
 ```bash
+# Asegúrate de haber configurado el archivo .env primero
 docker-compose up -d
 ```
 
@@ -207,16 +226,28 @@ estudio/
 └── README.md              # Este archivo
 ```
 
-## 🔑 Credenciales por Defecto
+## 🔑 Credenciales y Seguridad
 
-**Base de datos:**
-- Usuario: `postgres`
-- Contraseña: `postgres`
-- Base de datos: `crm_db`
+### ⚠️ Seguridad en Producción
 
-**Usuario de prueba** (crear con register):
+**NUNCA uses credenciales por defecto en producción**. Asegúrate de:
+
+1. ✅ Generar passwords seguros (min. 32 caracteres)
+2. ✅ Usar secrets de Kubernetes/Docker en producción
+3. ✅ Rotar credenciales regularmente
+4. ✅ No compartir archivos `.env`
+5. ✅ Usar variables de entorno del sistema
+
+### Configuración Local
+
+**Base de datos** (configurar en `.env`):
+- Usuario: Define en `POSTGRES_USER`
+- Contraseña: Define en `POSTGRES_PASSWORD` (⚠️ usa una segura)
+- Base de datos: Define en `POSTGRES_DB`
+
+**Usuario de prueba** (crear con /register):
 - Email: tu_email@example.com
-- Password: tu_contraseña
+- Password: tu_contraseña (min. 8 caracteres)
 
 ## 🤝 Contribuir
 
