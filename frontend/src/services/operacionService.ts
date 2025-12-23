@@ -23,8 +23,11 @@ export interface Operacion {
   id: string;
   tipo: TipoOperacion;
   descripcion: string | null;
-  monto: number;
+  montoTotal: number;
+  ingresosBrutos: number;
+  honorarios: number;
   montoPagado: number;
+  esMensualidad: boolean;
   estado: EstadoOperacion;
   fechaLimite: string | null;
   fechaInicio: string;
@@ -39,16 +42,21 @@ export interface Operacion {
 
 export interface CreateOperacionDto {
   tipo: TipoOperacion;
-  monto: number;
+  ingresosBrutos: number;
+  honorarios: number;
   fechaInicio: string;
   clienteId: string;
   estado: EstadoOperacion;
+  descripcion?: string;
+  fechaLimite?: string;
+  notas?: string;
 }
 
 export interface UpdateOperacionDto {
   tipo?: TipoOperacion;
   descripcion?: string;
-  monto?: number;
+  ingresosBrutos?: number;
+  honorarios?: number;
   montoPagado?: number;
   fechaLimite?: string;
   fechaInicio?: string;
@@ -62,6 +70,24 @@ export interface OperacionStats {
   enProceso: number;
   completadas: number;
   vencidas: number;
+  montoTotal: number;
+  montoPendiente: number;
+  montoEnProceso: number;
+  montoCompletado: number;
+  totalHonorarios: number;
+}
+
+export interface GenerarMensualesDto {
+  mes?: number;
+  anio?: number;
+}
+
+export interface GenerarMensualesResponse {
+  generadas: number;
+  mes: number;
+  anio: number;
+  mensaje?: string;
+  clientes?: Array<{ id: string; nombre: string }>;
 }
 
 export interface PaginatedResponse<T> {
@@ -74,6 +100,24 @@ export interface PaginatedResponse<T> {
     hasNextPage: boolean;
     hasPreviousPage: boolean;
   };
+}
+
+export interface ReporteOperacionDto {
+  id: string;
+  clienteNombre: string;
+  fechaCompletado: string;
+  montoTotal: number;
+}
+
+export interface MesEstadisticaDto {
+  mes: number;
+  nombreMes: string;
+  totalHonorarios: number;
+}
+
+export interface EstadisticasAnualesDto {
+  anio: number;
+  meses: MesEstadisticaDto[];
 }
 
 export const operacionService = {
@@ -140,6 +184,25 @@ export const operacionService = {
 
   async getOperacionesPorMes(mes: number, anio: number): Promise<Operacion[]> {
     const response = await api.get<Operacion[]>(`/api/operaciones/mes/${mes}/anio/${anio}`);
+    return response.data;
+  },
+
+  async generarOperacionesMensuales(dto?: GenerarMensualesDto): Promise<GenerarMensualesResponse> {
+    const response = await api.post<GenerarMensualesResponse>('/api/operaciones/generar-mensuales', dto || {});
+    return response.data;
+  },
+
+  async getOperacionesCompletadasMes(mes: number, anio: number): Promise<ReporteOperacionDto[]> {
+    const response = await api.get<ReporteOperacionDto[]>(
+      `/api/operaciones/reportes/mes-completado/${mes}/anio/${anio}`
+    );
+    return response.data;
+  },
+
+  async getEstadisticasAnuales(anio: number): Promise<EstadisticasAnualesDto> {
+    const response = await api.get<EstadisticasAnualesDto>(
+      `/api/operaciones/reportes/estadisticas-anuales/${anio}`
+    );
     return response.data;
   },
 

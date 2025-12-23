@@ -1,24 +1,37 @@
 version: '3.8'
 
 services:
-  postgres:
-    image: postgres:15-alpine
-    container_name: crm-contable-db
+  # ====================================
+  # 🗄️ Base de Datos MySQL
+  # ====================================
+  mysql:
+    image: mysql:8.0
+    container_name: crm-mysql-dev
     restart: always
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-crm_contable}
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root_password}
+      MYSQL_DATABASE: ${DB_DATABASE:-crm_contable}
+      MYSQL_USER: ${DB_USERNAME:-crm_user}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-crm_password}
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      - "${DB_PORT:-3306}:3306"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - mysql_data:/var/lib/mysql
+      - ./backups:/backups
     networks:
       - crm-network
+    command: --default-authentication-plugin=mysql_native_password
 
+# ====================================
+# 📦 Volúmenes
+# ====================================
 volumes:
-  postgres_data:
+  mysql_data:
+    driver: local
 
+# ====================================
+# 🌐 Redes
+# ====================================
 networks:
   crm-network:
     driver: bridge

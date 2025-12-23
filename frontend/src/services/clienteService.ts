@@ -1,5 +1,7 @@
 import { api } from './api';
 
+export type CondicionFiscal = 'RESPONSABLE_INSCRIPTO' | 'MONOTRIBUTISTA';
+
 export interface Cliente {
   id: string;
   nombre: string;
@@ -7,6 +9,9 @@ export interface Cliente {
   fechaAlta: string;
   contacto: string;
   activo: boolean;
+  esClienteFijo: boolean;
+  montoMensualidad: number;
+  condicionFiscal: CondicionFiscal;
   createdAt: string;
   updatedAt: string;
   userId: string;
@@ -17,6 +22,9 @@ export interface CreateClienteDto {
   cuit: string;
   fechaAlta: string;
   contacto: string;
+  esClienteFijo?: boolean;
+  montoMensualidad?: number;
+  condicionFiscal?: CondicionFiscal;
 }
 
 export interface UpdateClienteDto {
@@ -24,12 +32,17 @@ export interface UpdateClienteDto {
   cuit?: string;
   fechaAlta?: string;
   contacto?: string;
+  activo?: boolean;
+  esClienteFijo?: boolean;
+  montoMensualidad?: number;
+  condicionFiscal?: CondicionFiscal;
 }
 
 export interface ClienteStats {
   total: number;
   activos: number;
   inactivos: number;
+  clientesFijos: number;
 }
 
 export const clienteService = {

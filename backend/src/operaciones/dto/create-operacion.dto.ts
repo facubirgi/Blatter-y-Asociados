@@ -33,14 +33,24 @@ export class CreateOperacionDto {
   descripcion?: string;
 
   @ApiProperty({
-    example: 15000.50,
-    description: 'Monto de la operación',
+    example: 2500,
+    description: 'Ingresos brutos (impuesto)',
   })
   @Type(() => Number)
-  @IsNumber({}, { message: 'El monto debe ser un número válido' })
-  @Min(0, { message: 'El monto no puede ser negativo' })
-  @IsNotEmpty({ message: 'El monto es obligatorio' })
-  monto: number;
+  @IsNumber({}, { message: 'Los ingresos brutos deben ser un número válido' })
+  @Min(0, { message: 'Los ingresos brutos no pueden ser negativos' })
+  @IsNotEmpty({ message: 'Los ingresos brutos son obligatorios' })
+  ingresosBrutos: number;
+
+  @ApiProperty({
+    example: 12500,
+    description: 'Honorarios del contador',
+  })
+  @Type(() => Number)
+  @IsNumber({}, { message: 'Los honorarios deben ser un número válido' })
+  @Min(0, { message: 'Los honorarios no pueden ser negativos' })
+  @IsNotEmpty({ message: 'Los honorarios son obligatorios' })
+  honorarios: number;
 
   @ApiProperty({
     example: '2024-02-15',

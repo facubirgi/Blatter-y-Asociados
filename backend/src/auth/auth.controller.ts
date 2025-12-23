@@ -9,6 +9,7 @@ import {
   Patch,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
@@ -23,6 +24,7 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('register')
+  @Throttle({ short: { ttl: 60000, limit: 3 } }) // 🛡️ Máx 3 registros por minuto
   @ApiOperation({ summary: 'Registrar un nuevo usuario' })
   @ApiResponse({
     status: 201,
@@ -32,12 +34,17 @@ export class AuthController {
     status: 409,
     description: 'El email ya está registrado',
   })
+  @ApiResponse({
+    status: 429,
+    description: 'Demasiadas solicitudes - Rate limit excedido',
+  })
   async register(@Body() registerDto: RegisterDto) {
     return this.authService.register(registerDto);
   }
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
+  @Throttle({ short: { ttl: 60000, limit: 5 } }) // 🛡️ Máx 5 intentos de login por minuto
   @ApiOperation({ summary: 'Iniciar sesión' })
   @ApiResponse({
     status: 200,
@@ -46,6 +53,10 @@ export class AuthController {
   @ApiResponse({
     status: 401,
     description: 'Credenciales inválidas',
+  })
+  @ApiResponse({
+    status: 429,
+    description: 'Demasiados intentos - Rate limit excedido',
   })
   async login(@Body() loginDto: LoginDto) {
     return this.authService.login(loginDto);

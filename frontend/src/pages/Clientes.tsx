@@ -180,6 +180,41 @@ export default function Clientes() {
                   </p>
                 </div>
               </div>
+
+              {/* Badges */}
+              <div className="flex flex-wrap items-center gap-2 mt-4 pt-4 border-t border-gray-100">
+                {/* Badge Cliente Fijo */}
+                {cliente.esClienteFijo && (
+                  <span className="inline-flex items-center gap-1 px-3 py-1 bg-purple-100 text-purple-700 text-xs font-medium rounded-full">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Mensualidad: ${cliente.montoMensualidad.toLocaleString('es-AR')}
+                  </span>
+                )}
+
+                {/* Badge Condición Fiscal */}
+                <span className={`inline-flex items-center gap-1 px-3 py-1 text-xs font-medium rounded-full ${
+                  cliente.condicionFiscal === 'RESPONSABLE_INSCRIPTO'
+                    ? 'bg-blue-100 text-blue-700'
+                    : 'bg-green-100 text-green-700'
+                }`}>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  {cliente.condicionFiscal === 'RESPONSABLE_INSCRIPTO' ? 'Resp. Inscripto' : 'Monotributista'}
+                </span>
+
+                {/* Badge Estado */}
+                <span className={`inline-flex items-center gap-1 px-3 py-1 text-xs font-medium rounded-full ${
+                  cliente.activo
+                    ? 'bg-green-100 text-green-700'
+                    : 'bg-gray-100 text-gray-700'
+                }`}>
+                  <span className={`w-2 h-2 rounded-full ${cliente.activo ? 'bg-green-500' : 'bg-gray-400'}`}></span>
+                  {cliente.activo ? 'Activo' : 'Inactivo'}
+                </span>
+              </div>
             </div>
           ))}
         </div>

@@ -3,20 +3,30 @@ import {
   NotFoundException,
   BadRequestException,
   ForbiddenException,
+  Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between, LessThanOrEqual, MoreThanOrEqual } from 'typeorm';
-import { Operacion, EstadoOperacion } from './entities/operacion.entity';
+import { Repository, Between, LessThanOrEqual, MoreThanOrEqual, DataSource } from 'typeorm';
+import { Cron, CronExpression } from '@nestjs/schedule';
+import { Operacion, EstadoOperacion, TipoOperacion } from './entities/operacion.entity';
 import { CreateOperacionDto } from './dto/create-operacion.dto';
 import { UpdateOperacionDto } from './dto/update-operacion.dto';
+import { ReporteOperacionDto } from './dto/reporte-operacion.dto';
+import { EstadisticasAnualesDto, MesEstadisticaDto } from './dto/estadisticas-anuales.dto';
 import { ClientesService } from '../clientes/clientes.service';
+import { User } from '../auth/entities/user.entity';
 
 @Injectable()
 export class OperacionesService {
+  private readonly logger = new Logger(OperacionesService.name);
+
   constructor(
     @InjectRepository(Operacion)
     private readonly operacionRepository: Repository<Operacion>,
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
     private readonly clientesService: ClientesService,
+    private readonly dataSource: DataSource,
   ) {}
 
   async create(createOperacionDto: CreateOperacionDto, userId: string) {
@@ -123,9 +133,11 @@ export class OperacionesService {
 
     // Si se está actualizando el monto pagado, validar y actualizar estado automáticamente
     if (updateOperacionDto.montoPagado !== undefined) {
-      const montoTotal = updateOperacionDto.monto !== undefined
-        ? Number(updateOperacionDto.monto)
-        : Number(operacion.monto);
+      // Calcular montoTotal considerando posibles actualizaciones de honorarios
+      const honorarios = updateOperacionDto.honorarios !== undefined
+        ? Number(updateOperacionDto.honorarios)
+        : Number(operacion.honorarios);
+      const montoTotal = honorarios;
       const nuevoMontoPagado = Number(updateOperacionDto.montoPagado);
 
       // Validar que el monto pagado no exceda el monto total
@@ -183,14 +195,27 @@ export class OperacionesService {
 
   async cambiarEstado(id: string, estado: EstadoOperacion, userId: string) {
     const operacion = await this.findOne(id, userId);
+    this.logger.log(`Cambiando estado de operación ${id} de ${operacion.estado} a ${estado}`);
+    this.logger.log(`  - fechaInicio: ${operacion.fechaInicio}`);
+    this.logger.log(`  - updatedAt ANTES: ${operacion.updatedAt}`);
+
     operacion.estado = estado;
 
-    // Si se marca como completado, agregar fecha
-    if (estado === EstadoOperacion.COMPLETADO && !operacion.fechaCompletado) {
-      operacion.fechaCompletado = new Date();
+    // Si se marca como completado, agregar fecha y marcar como totalmente pagado
+    if (estado === EstadoOperacion.COMPLETADO) {
+      if (!operacion.fechaCompletado) {
+        operacion.fechaCompletado = new Date();
+        this.logger.log(`  - fechaCompletado: ${operacion.fechaCompletado}`);
+      }
+      // Marcar como totalmente pagado
+      operacion.montoPagado = operacion.montoTotal;
+      this.logger.log(`  - montoPagado actualizado a: ${operacion.montoPagado}`);
     }
 
-    return await this.operacionRepository.save(operacion);
+    const resultado = await this.operacionRepository.save(operacion);
+    this.logger.log(`  - updatedAt DESPUÉS: ${resultado.updatedAt}`);
+
+    return resultado;
   }
 
   async registrarPago(id: string, montoPago: number, userId: string) {
@@ -198,9 +223,9 @@ export class OperacionesService {
 
     // Validar que el pago no exceda el monto total
     const nuevoMontoPagado = Number(operacion.montoPagado) + Number(montoPago);
-    if (nuevoMontoPagado > Number(operacion.monto)) {
+    if (nuevoMontoPagado > Number(operacion.montoTotal)) {
       throw new BadRequestException(
-        `El pago excede el monto total. Monto restante: ${Number(operacion.monto) - Number(operacion.montoPagado)}`,
+        `El pago excede el monto total. Monto restante: ${Number(operacion.montoTotal) - Number(operacion.montoPagado)}`,
       );
     }
 
@@ -208,7 +233,7 @@ export class OperacionesService {
     operacion.montoPagado = nuevoMontoPagado;
 
     // Si se pagó el total, marcar como completado
-    if (nuevoMontoPagado >= Number(operacion.monto)) {
+    if (nuevoMontoPagado >= Number(operacion.montoTotal)) {
       operacion.estado = EstadoOperacion.COMPLETADO;
       if (!operacion.fechaCompletado) {
         operacion.fechaCompletado = new Date();
@@ -270,18 +295,18 @@ export class OperacionesService {
         }),
       ]);
 
-    // Calcular montos totales por estado
-    const [montoTotal, montoPendiente, montoEnProceso, montoCompletado] =
+    // Calcular montos totales y honorarios por estado
+    const [montoTotal, montoPendiente, montoEnProceso, montoCompletado, totalHonorarios] =
       await Promise.all([
         this.operacionRepository
           .createQueryBuilder('operacion')
-          .select('SUM(operacion.monto)', 'total')
+          .select('SUM(operacion.montoTotal)', 'total')
           .where('operacion.userId = :userId', { userId })
           .getRawOne()
           .then((result) => parseFloat(result?.total || 0)),
         this.operacionRepository
           .createQueryBuilder('operacion')
-          .select('SUM(operacion.monto)', 'total')
+          .select('SUM(operacion.montoTotal)', 'total')
           .where('operacion.userId = :userId', { userId })
           .andWhere('operacion.estado = :estado', {
             estado: EstadoOperacion.PENDIENTE,
@@ -290,7 +315,7 @@ export class OperacionesService {
           .then((result) => parseFloat(result?.total || 0)),
         this.operacionRepository
           .createQueryBuilder('operacion')
-          .select('SUM(operacion.monto)', 'total')
+          .select('SUM(operacion.montoTotal)', 'total')
           .where('operacion.userId = :userId', { userId })
           .andWhere('operacion.estado = :estado', {
             estado: EstadoOperacion.EN_PROCESO,
@@ -299,11 +324,17 @@ export class OperacionesService {
           .then((result) => parseFloat(result?.total || 0)),
         this.operacionRepository
           .createQueryBuilder('operacion')
-          .select('SUM(operacion.monto)', 'total')
+          .select('SUM(operacion.montoTotal)', 'total')
           .where('operacion.userId = :userId', { userId })
           .andWhere('operacion.estado = :estado', {
             estado: EstadoOperacion.COMPLETADO,
           })
+          .getRawOne()
+          .then((result) => parseFloat(result?.total || 0)),
+        this.operacionRepository
+          .createQueryBuilder('operacion')
+          .select('SUM(operacion.honorarios)', 'total')
+          .where('operacion.userId = :userId', { userId })
           .getRawOne()
           .then((result) => parseFloat(result?.total || 0)),
       ]);
@@ -318,6 +349,7 @@ export class OperacionesService {
       montoPendiente,
       montoEnProceso,
       montoCompletado,
+      totalHonorarios,
     };
   }
 
@@ -333,5 +365,325 @@ export class OperacionesService {
       order: { fechaLimite: 'ASC' },
       relations: ['cliente'],
     });
+  }
+
+  /**
+   * Obtiene operaciones completadas en un mes específico (basado en fechaCompletado)
+   * @param userId - ID del usuario
+   * @param mes - Mes (1-12)
+   * @param anio - Año (YYYY)
+   * @returns Array de operaciones completadas con datos del cliente
+   */
+  async getOperacionesCompletadasMes(
+    userId: string,
+    mes: number,
+    anio: number,
+  ): Promise<ReporteOperacionDto[]> {
+    // Validar parámetros
+    if (mes < 1 || mes > 12) {
+      throw new BadRequestException('El mes debe estar entre 1 y 12');
+    }
+    if (anio < 2020) {
+      throw new BadRequestException('El año debe ser mayor o igual a 2020');
+    }
+
+    // Calcular rango de fechas del mes (formato string para evitar problemas de zona horaria)
+    const primerDia = `${anio}-${String(mes).padStart(2, '0')}-01`;
+    const ultimoDia = new Date(anio, mes, 0).getDate();
+    const ultimoDiaMes = `${anio}-${String(mes).padStart(2, '0')}-${String(ultimoDia).padStart(2, '0')}`;
+
+    // Consulta con QueryBuilder para eficiencia
+    const operaciones = await this.operacionRepository
+      .createQueryBuilder('operacion')
+      .select('operacion.id', 'id')
+      .addSelect('operacion.monto_total', 'montoTotal')
+      .addSelect('operacion.fecha_completado', 'fechaCompletado')
+      .addSelect('cliente.nombre', 'clienteNombre')
+      .innerJoin('operacion.cliente', 'cliente')
+      .where('operacion.userId = :userId', { userId })
+      .andWhere('operacion.estado = :estado', {
+        estado: EstadoOperacion.COMPLETADO,
+      })
+      .andWhere('operacion.fecha_completado IS NOT NULL')
+      .andWhere('operacion.fecha_completado >= :primerDia', { primerDia })
+      .andWhere('operacion.fecha_completado <= :ultimoDiaMes', { ultimoDiaMes })
+      .orderBy('operacion.fecha_completado', 'DESC')
+      .getRawMany();
+
+    // Mapear a DTO
+    return operaciones.map((op) => {
+      // Manejar fechaCompletado que puede venir como string o Date de la BD
+      let fechaFormateada: string;
+      if (typeof op.fechaCompletado === 'string') {
+        // Ya viene en formato string YYYY-MM-DD desde la BD
+        fechaFormateada = op.fechaCompletado;
+      } else if (op.fechaCompletado instanceof Date) {
+        // Es un objeto Date, convertirlo
+        fechaFormateada = op.fechaCompletado.toISOString().split('T')[0];
+      } else {
+        // Valor inválido, usar fecha actual como fallback
+        this.logger.warn(`Fecha completado inválida para operación ${op.id}: ${op.fechaCompletado}`);
+        fechaFormateada = new Date().toISOString().split('T')[0];
+      }
+
+      // Manejar montoTotal que puede ser null o string (DECIMAL viene como string desde PostgreSQL)
+      let montoTotal: number;
+      if (op.montoTotal === null || op.montoTotal === undefined) {
+        this.logger.warn(`Monto total null para operación ${op.id}`);
+        montoTotal = 0;
+      } else {
+        // Convertir string a número y redondear a 2 decimales
+        const parsed = Number(op.montoTotal);
+        if (isNaN(parsed)) {
+          this.logger.warn(`Monto total inválido para operación ${op.id}: ${op.montoTotal}`);
+          montoTotal = 0;
+        } else {
+          montoTotal = Math.round(parsed * 100) / 100; // Redondear a 2 decimales
+        }
+      }
+
+      return {
+        id: op.id,
+        clienteNombre: op.clienteNombre,
+        fechaCompletado: fechaFormateada,
+        montoTotal,
+      };
+    });
+  }
+
+  /**
+   * Obtiene estadísticas anuales de honorarios agrupadas por mes
+   * @param userId - ID del usuario
+   * @param anio - Año (YYYY)
+   * @returns Estadísticas con array de 12 meses
+   */
+  async getEstadisticasAnuales(
+    userId: string,
+    anio: number,
+  ): Promise<EstadisticasAnualesDto> {
+    // Validar parámetro
+    if (anio < 2020) {
+      throw new BadRequestException('El año debe ser mayor o igual a 2020');
+    }
+
+    // Nombres de meses en español
+    const mesesNombres = [
+      'Enero',
+      'Febrero',
+      'Marzo',
+      'Abril',
+      'Mayo',
+      'Junio',
+      'Julio',
+      'Agosto',
+      'Septiembre',
+      'Octubre',
+      'Noviembre',
+      'Diciembre',
+    ];
+
+    // Obtener datos de todos los meses en paralelo
+    const resultados = await Promise.all(
+      Array.from({ length: 12 }, async (_, mesIndex) => {
+        const mes = mesIndex + 1;
+        const primerDia = `${anio}-${String(mes).padStart(2, '0')}-01`;
+        const ultimoDia = new Date(anio, mes, 0).getDate();
+        const ultimoDiaMes = `${anio}-${String(mes).padStart(2, '0')}-${String(ultimoDia).padStart(2, '0')}`;
+
+        const resultado = await this.operacionRepository
+          .createQueryBuilder('operacion')
+          .select('SUM(operacion.honorarios)', 'totalHonorarios')
+          .where('operacion.userId = :userId', { userId })
+          .andWhere('operacion.estado = :estado', {
+            estado: EstadoOperacion.COMPLETADO,
+          })
+          .andWhere('operacion.fechaCompletado IS NOT NULL')
+          .andWhere('operacion.fechaCompletado >= :primerDia', {
+            primerDia,
+          })
+          .andWhere('operacion.fechaCompletado <= :ultimoDiaMes', { ultimoDiaMes })
+          .getRawOne();
+
+        return {
+          mes,
+          nombreMes: mesesNombres[mesIndex],
+          totalHonorarios: parseFloat(resultado?.totalHonorarios || 0),
+        };
+      }),
+    );
+
+    return {
+      anio,
+      meses: resultados,
+    };
+  }
+
+  /**
+   * CRON: Se ejecuta automáticamente el día 1 de cada mes a las 00:00
+   * Genera mensualidades para todos los usuarios con clientes fijos
+   */
+  @Cron(CronExpression.EVERY_1ST_DAY_OF_MONTH_AT_MIDNIGHT)
+  async generarMensualidadesAutomatico() {
+    this.logger.log('Ejecutando generación automática de mensualidades...');
+
+    try {
+      // Obtener todos los usuarios
+      const usuarios = await this.userRepository.find();
+      let totalGeneradas = 0;
+      let totalUsuarios = 0;
+
+      for (const usuario of usuarios) {
+        try {
+          const resultado = await this.generarMensualidades(usuario.id);
+          if (resultado.generadas > 0) {
+            totalGeneradas += resultado.generadas;
+            totalUsuarios++;
+            this.logger.log(
+              `Usuario ${usuario.email}: ${resultado.generadas} mensualidades generadas`,
+            );
+          }
+        } catch (error) {
+          this.logger.error(
+            `Error generando mensualidades para usuario ${usuario.id}:`,
+            error.message,
+          );
+        }
+      }
+
+      this.logger.log(
+        `Generación automática completada: ${totalGeneradas} mensualidades para ${totalUsuarios} usuarios`,
+      );
+    } catch (error) {
+      this.logger.error('Error en generación automática de mensualidades:', error);
+    }
+  }
+
+  /**
+   * Genera operaciones mensuales para todos los clientes fijos activos de un usuario
+   * @param userId - ID del usuario
+   * @param dia - Día (1-31), por defecto el día actual
+   * @param mes - Mes (1-12), por defecto el mes actual
+   * @param anio - Año (YYYY), por defecto el año actual
+   * @returns Información sobre las operaciones generadas
+   */
+  async generarMensualidades(userId: string, dia?: number, mes?: number, anio?: number) {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      const fechaActual = new Date();
+      const diaActual = dia || fechaActual.getDate();
+      const mesActual = mes || fechaActual.getMonth() + 1;
+      const anioActual = anio || fechaActual.getFullYear();
+
+      // 1. Verificar si ya existen mensualidades para este día específico
+      const fechaInicio = new Date(anioActual, mesActual - 1, diaActual);
+      const fechaFinDia = new Date(anioActual, mesActual - 1, diaActual, 23, 59, 59, 999);
+
+      const mensualidadesExistentes = await this.operacionRepository
+        .createQueryBuilder('op')
+        .where('op.esMensualidad = :esMensualidad', { esMensualidad: true })
+        .andWhere('op.userId = :userId', { userId })
+        .andWhere('op.fechaInicio >= :fechaInicio', { fechaInicio })
+        .andWhere('op.fechaInicio <= :fechaFin', { fechaFin: fechaFinDia })
+        .getCount();
+
+      if (mensualidadesExistentes > 0) {
+        await queryRunner.rollbackTransaction();
+        throw new BadRequestException(
+          `Ya existen ${mensualidadesExistentes} mensualidades generadas para ${diaActual}/${mesActual}/${anioActual}`,
+        );
+      }
+
+      // 2. Obtener clientes fijos del usuario
+      const clientesFijos = await this.clientesService.getClientesFijos(userId);
+
+      if (clientesFijos.length === 0) {
+        await queryRunner.rollbackTransaction();
+        return {
+          generadas: 0,
+          mensaje: 'No hay clientes fijos activos',
+          dia: diaActual,
+          mes: mesActual,
+          anio: anioActual,
+        };
+      }
+
+      // 3. Preparar operaciones en lote (BULK INSERT)
+      const fechaLimite = new Date(anioActual, mesActual - 1, diaActual); // Mismo día como límite
+
+      const operaciones = clientesFijos.map((cliente) => {
+        // Convertir DECIMAL a número (TypeORM devuelve DECIMALs como strings)
+        const ingresosBrutos = 0;
+        const honorarios = Number(cliente.montoMensualidad) || 0;
+        const montoTotal = honorarios;
+
+        // Validar que el monto es un número válido
+        if (isNaN(honorarios) || honorarios < 0) {
+          this.logger.warn(
+            `Cliente ${cliente.nombre} (${cliente.id}) tiene un monto de mensualidad inválido: ${cliente.montoMensualidad}`,
+          );
+        }
+
+        return this.operacionRepository.create({
+          tipo: TipoOperacion.CONTABILIDAD_MENSUAL,
+          descripcion: `Mensualidad ${diaActual}/${mesActual}/${anioActual}`,
+          ingresosBrutos,
+          honorarios,
+          montoTotal, // Calculado manualmente porque bulk insert NO ejecuta @BeforeInsert
+          esMensualidad: true,
+          fechaInicio,
+          fechaLimite,
+          clienteId: cliente.id,
+          userId,
+          estado: EstadoOperacion.PENDIENTE,
+          montoPagado: 0,
+        });
+      });
+
+      // 4. Insertar en lote usando query builder (más rápido que save)
+      await queryRunner.manager
+        .createQueryBuilder()
+        .insert()
+        .into(Operacion)
+        .values(operaciones)
+        .execute();
+
+      await queryRunner.commitTransaction();
+
+      this.logger.log(
+        `Generadas ${clientesFijos.length} mensualidades para usuario ${userId} (${diaActual}/${mesActual}/${anioActual})`,
+      );
+
+      return {
+        generadas: clientesFijos.length,
+        dia: diaActual,
+        mes: mesActual,
+        anio: anioActual,
+        clientes: clientesFijos.map((c) => ({ id: c.id, nombre: c.nombre })),
+      };
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      
+      // Log detallado del error
+      this.logger.error(
+        `Error al generar mensualidades para usuario ${userId}`,
+      );
+      this.logger.error(`Mensaje: ${error.message}`);
+      this.logger.error(`Stack: ${error.stack}`);
+      
+      // Si es un BadRequestException (validación), lo propagamos tal cual
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      
+      // Para otros errores, proporcionamos más contexto
+      throw new BadRequestException(
+        `Error al generar mensualidades: ${error.message}`,
+      );
+    } finally {
+      await queryRunner.release();
+    }
   }
 }

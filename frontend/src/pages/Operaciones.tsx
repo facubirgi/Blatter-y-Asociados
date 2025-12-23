@@ -56,7 +56,6 @@ function SkeletonCard() {
 export default function Operaciones() {
 
   const [operaciones, setOperaciones] = useState<Operacion[]>([]);
-  const [operacionesEnReporte, setOperacionesEnReporte] = useState<string[]>([]); // IDs de operaciones en el reporte
   const [loading, setLoading] = useState(true);
   const [showAgregarModal, setShowAgregarModal] = useState(false);
   const [showEditarModal, setShowEditarModal] = useState(false);
@@ -91,15 +90,15 @@ export default function Operaciones() {
         return ordenEstado[a.estado] - ordenEstado[b.estado];
       });
 
-      // Calcular monto total a cobrar de operaciones pendientes
+      // Calcular monto total de operaciones pendientes
       const montoPendiente = operacionesResponse.data
         .filter(op => op.estado === EstadoOperacion.PENDIENTE)
-        .reduce((total, op) => total + (op.monto - op.montoPagado), 0);
+        .reduce((total, op) => total + op.montoTotal, 0);
 
-      // Calcular monto total a cobrar de operaciones en proceso
+      // Calcular monto total de operaciones en proceso
       const montoEnProceso = operacionesResponse.data
         .filter(op => op.estado === EstadoOperacion.EN_PROCESO)
-        .reduce((total, op) => total + (op.monto - op.montoPagado), 0);
+        .reduce((total, op) => total + op.montoTotal, 0);
 
       setOperaciones(operacionesOrdenadas);
       setTotalPages(operacionesResponse.meta.totalPages);
@@ -119,35 +118,8 @@ export default function Operaciones() {
     }
   };
 
-  // Cargar IDs de operaciones en el reporte desde localStorage
-  const cargarOperacionesEnReporte = () => {
-    const reporteGuardado = localStorage.getItem('reporteDiario');
-    if (reporteGuardado) {
-      const operacionesReporte: Operacion[] = JSON.parse(reporteGuardado);
-      const ids = operacionesReporte.map(op => op.id);
-      setOperacionesEnReporte(ids);
-    } else {
-      setOperacionesEnReporte([]);
-    }
-  };
-
   useEffect(() => {
     loadData();
-    cargarOperacionesEnReporte();
-
-    // Escuchar cambios en localStorage (cuando se elimina del reporte en otra pestaña/componente)
-    const handleStorageChange = () => {
-      cargarOperacionesEnReporte();
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    // Evento personalizado para cambios en la misma pestaña
-    window.addEventListener('reporteActualizado', handleStorageChange);
-
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('reporteActualizado', handleStorageChange);
-    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -248,101 +220,32 @@ export default function Operaciones() {
     }
   };
 
-  // Marcar operación como pagada completamente
-  const handleMarcarPagado = async (operacion: Operacion) => {
-    const montoRestante = operacion.monto - operacion.montoPagado;
 
-    if (montoRestante <= 0) {
-      toast.error('Esta operación ya está completamente pagada');
-      return;
-    }
+  // Generar operaciones mensuales para clientes fijos
+  const handleGenerarMensuales = async () => {
+    const hoy = new Date();
+    const mes = hoy.getMonth() + 1;
+    const anio = hoy.getFullYear();
 
-    // Toast de confirmación
-    toast((t) => (
-      <div className="flex flex-col gap-3">
-        <p className="font-medium">¿Confirmar pago completo?</p>
-        <p className="text-sm text-gray-600">
-          Monto: ${montoRestante.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-        </p>
-        <div className="flex gap-2 justify-end">
-          <button
-            onClick={() => {
-              toast.dismiss(t.id);
-              confirmarPago(operacion.id, montoRestante);
-            }}
-            className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm font-medium"
-          >
-            Confirmar
-          </button>
-          <button
-            onClick={() => toast.dismiss(t.id)}
-            className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 text-sm font-medium"
-          >
-            Cancelar
-          </button>
-        </div>
-      </div>
-    ), {
-      duration: Infinity,
-      style: {
-        background: '#fff',
-        color: '#000',
-        maxWidth: '400px',
-      },
-    });
-  };
-
-  const confirmarPago = async (operacionId: string, montoRestante: number) => {
     try {
-      await operacionService.registrarPago(operacionId, montoRestante);
+      const response = await operacionService.generarOperacionesMensuales({ mes, anio });
+
+      if (response.generadas === 0) {
+        toast.success(response.mensaje || 'No hay clientes fijos para generar mensualidades');
+      } else {
+        toast.success(`✓ Se generaron ${response.generadas} operaciones mensuales para ${mes}/${anio}`);
+      }
+
+      // Recargar lista de operaciones
       await loadData(currentPage);
-      toast.success('Pago registrado exitosamente');
-    } catch (error) {
-      console.error('Error al registrar pago:', error);
-      toast.error('No se pudo registrar el pago');
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || 'Error al generar operaciones mensuales';
+      toast.error(errorMessage);
+      console.error('Error al generar mensualidades:', error);
     }
   };
 
-  // Agregar operación al reporte diario
-  const handleAgregarAReporte = (operacion: Operacion) => {
-    const reporteGuardado = localStorage.getItem('reporteDiario');
-    const operacionesReporte: any[] = reporteGuardado ? JSON.parse(reporteGuardado) : [];
-
-    // Verificar si la operación ya está en el reporte
-    const yaExiste = operacionesReporte.some(op => op.id === operacion.id);
-
-    if (yaExiste) {
-      toast.error('Esta operación ya está en el reporte diario');
-      return;
-    }
-
-    // Agregar la operación al reporte con fecha de agregado
-    const operacionConFecha = {
-      ...operacion,
-      fechaAgregadoReporte: new Date().toISOString().split('T')[0] // YYYY-MM-DD
-    };
-    operacionesReporte.push(operacionConFecha);
-    localStorage.setItem('reporteDiario', JSON.stringify(operacionesReporte));
-
-    // Agregar el ID a la lista de operaciones en reporte
-    setOperacionesEnReporte(prev => [...prev, operacion.id]);
-
-    // Notificación de éxito
-    toast.success('Operación agregada al reporte diario');
-
-    // Actualizar estadísticas (restar 1 de completadas)
-    setStats(prevStats => ({
-      ...prevStats,
-      total: prevStats.total - 1,
-      completadas: prevStats.completadas - 1,
-    }));
-  };
-
-  // Filtrar operaciones que no están en el reporte diario (con memoización)
-  const operacionesVisibles = useMemo(
-    () => operaciones.filter(op => !operacionesEnReporte.includes(op.id)),
-    [operaciones, operacionesEnReporte]
-  );
+  // No es necesario filtrar operaciones ya que el sistema usa el backend para reportes
 
   // Generar números de página para mostrar (optimizado)
   const getPageNumbers = useMemo(() => {
@@ -396,59 +299,26 @@ export default function Operaciones() {
               </svg>
               Operaciones
             </h2>
-            <button
-              onClick={() => setShowAgregarModal(true)}
-              className="inline-flex items-center px-5 py-2.5 bg-gray-800 text-white rounded-lg hover:bg-gray-900 transition-colors font-medium"
-            >
-              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              Agregar Operación
-            </button>
-          </div>
-
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-            {/* Pendientes */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <div className="flex items-center justify-between mb-3">
-                <div>
-                  <p className="text-sm text-gray-600 mb-1">Pendientes</p>
-                  <p className="text-3xl font-semibold text-orange-600">{stats.pendientes}</p>
-                </div>
-                <div className="w-12 h-12 bg-orange-50 rounded-lg flex items-center justify-center">
-                  <svg className="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-              </div>
-              <div className="pt-3 border-t border-gray-200">
-                <p className="text-xs text-gray-500 mb-1">A Cobrar</p>
-                <p className="text-lg font-semibold text-orange-700">
-                  ${stats.montoPendiente.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </p>
-              </div>
-            </div>
-
-            {/* En Proceso */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <div className="flex items-center justify-between mb-3">
-                <div>
-                  <p className="text-sm text-gray-600 mb-1">En Proceso</p>
-                  <p className="text-3xl font-semibold text-blue-600">{stats.enProceso}</p>
-                </div>
-                <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center">
-                  <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
-                </div>
-              </div>
-              <div className="pt-3 border-t border-gray-200">
-                <p className="text-xs text-gray-500 mb-1">A Cobrar</p>
-                <p className="text-lg font-semibold text-blue-700">
-                  ${stats.montoEnProceso.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </p>
-              </div>
+            <div className="flex gap-3">
+              <button
+                onClick={handleGenerarMensuales}
+                className="inline-flex items-center px-5 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium"
+                title="Generar operaciones mensuales para clientes fijos"
+              >
+                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                Generar Mensualidades
+              </button>
+              <button
+                onClick={() => setShowAgregarModal(true)}
+                className="inline-flex items-center px-5 py-2.5 bg-gray-800 text-white rounded-lg hover:bg-gray-900 transition-colors font-medium"
+              >
+                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Agregar Operación
+              </button>
             </div>
           </div>
 
@@ -461,7 +331,7 @@ export default function Operaciones() {
                   <SkeletonCard key={i} />
                 ))}
               </div>
-            ) : operacionesVisibles.length === 0 ? (
+            ) : operaciones.length === 0 ? (
               <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
                 <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
@@ -471,7 +341,7 @@ export default function Operaciones() {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {operacionesVisibles.map((op) => (
+                {operaciones.map((op) => (
                   <div key={op.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                     {/* Cliente */}
                     <div className="flex items-center justify-between mb-4">
@@ -487,18 +357,6 @@ export default function Operaciones() {
                         </div>
                       </div>
                       <div className="flex gap-2">
-                        {/* Botón Agregar a Reporte - Solo para operaciones completadas */}
-                        {op.estado === EstadoOperacion.COMPLETADO && (
-                          <button
-                            onClick={() => handleAgregarAReporte(op)}
-                            className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                            title="Agregar a Reporte Diario"
-                          >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                            </svg>
-                          </button>
-                        )}
                         <button
                           onClick={() => handleEditar(op)}
                           className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
@@ -527,23 +385,17 @@ export default function Operaciones() {
                     </div>
 
                     {/* Montos */}
-                    <div className="mb-3 grid grid-cols-3 gap-3">
+                    <div className="mb-3 grid grid-cols-2 gap-3">
+                      <div>
+                        <p className="text-xs text-gray-500 mb-1">Honorarios</p>
+                        <p className="text-lg font-semibold text-green-600">
+                          ${op.honorarios.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </p>
+                      </div>
                       <div>
                         <p className="text-xs text-gray-500 mb-1">Monto Total</p>
-                        <p className="text-sm text-gray-900 font-semibold">
-                          ${op.monto.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500 mb-1">Pagado</p>
-                        <p className="text-sm text-green-600 font-semibold">
-                          ${op.montoPagado.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500 mb-1">Restante</p>
-                        <p className="text-sm text-orange-600 font-semibold">
-                          ${(op.monto - op.montoPagado).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        <p className="text-lg font-semibold text-gray-900">
+                          ${op.montoTotal.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </p>
                       </div>
                     </div>
@@ -551,33 +403,17 @@ export default function Operaciones() {
                     {/* Estado - Solo lectura */}
                     <div className="mb-3">
                       <p className="text-xs text-gray-500 mb-1">Estado</p>
-                      <div className="flex items-center justify-between">
-                        <span
-                          className={`inline-block px-3 py-1 rounded-md text-sm font-medium ${
-                            op.estado === EstadoOperacion.PENDIENTE
-                              ? 'bg-orange-100 text-orange-700'
-                              : op.estado === EstadoOperacion.EN_PROCESO
-                              ? 'bg-blue-100 text-blue-700'
-                              : 'bg-green-100 text-green-700'
-                          }`}
-                        >
-                          {operacionService.getEstadoOperacionLabel(op.estado)}
-                        </span>
-
-                        {/* Botón Marcar como Pagado - Solo si no está completado y tiene saldo pendiente */}
-                        {op.estado !== EstadoOperacion.COMPLETADO && (op.monto - op.montoPagado) > 0 && (
-                          <button
-                            onClick={() => handleMarcarPagado(op)}
-                            className="px-4 py-1.5 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 transition-colors flex items-center gap-1.5"
-                            title="Marcar como pagado completamente"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                            </svg>
-                            Pagado
-                          </button>
-                        )}
-                      </div>
+                      <span
+                        className={`inline-block px-3 py-1 rounded-md text-sm font-medium ${
+                          op.estado === EstadoOperacion.PENDIENTE
+                            ? 'bg-orange-100 text-orange-700'
+                            : op.estado === EstadoOperacion.EN_PROCESO
+                            ? 'bg-blue-100 text-blue-700'
+                            : 'bg-green-100 text-green-700'
+                        }`}
+                      >
+                        {operacionService.getEstadoOperacionLabel(op.estado)}
+                      </span>
                     </div>
 
                     {/* Fechas */}
@@ -591,7 +427,7 @@ export default function Operaciones() {
             )}
 
             {/* Paginación */}
-            {!loading && operacionesVisibles.length > 0 && totalPages > 1 && (
+            {!loading && operaciones.length > 0 && totalPages > 1 && (
               <div className="flex justify-center items-center gap-2 mt-8">
                 <button
                   onClick={() => loadData(currentPage - 1)}
@@ -649,6 +485,10 @@ export default function Operaciones() {
           setOperacionSeleccionada(null);
         }}
         onSubmit={handleActualizar}
+        onOperacionCompletada={async () => {
+          // Recargar operaciones después de marcar como completada
+          await loadData(currentPage);
+        }}
       />
     </MainLayout>
   );

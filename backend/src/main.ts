@@ -2,13 +2,26 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
+import helmet from 'helmet';
+import compression from 'compression';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Habilitar CORS para el frontend
+  // 🔒 Seguridad: Helmet.js - Headers de seguridad HTTP
+  app.use(helmet());
+
+  // ⚡ Performance: Compresión gzip
+  app.use(compression());
+
+  // 🌐 Habilitar CORS para el frontend
+  const allowedOrigins =
+    process.env.NODE_ENV === 'production'
+      ? process.env.FRONTEND_URL || 'http://localhost:5173'
+      : 'http://localhost:5173';
+
   app.enableCors({
-    origin: 'http://localhost:5173', // URL del frontend Vite
+    origin: allowedOrigins,
     credentials: true,
   });
 

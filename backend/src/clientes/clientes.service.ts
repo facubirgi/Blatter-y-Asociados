@@ -27,6 +27,13 @@ export class ClientesService {
       throw new ConflictException('Ya existe un cliente con ese CUIT');
     }
 
+    // Validar que si es cliente fijo, tenga monto de mensualidad
+    if (createClienteDto.esClienteFijo && (!createClienteDto.montoMensualidad || createClienteDto.montoMensualidad <= 0)) {
+      throw new BadRequestException(
+        'Los clientes fijos deben tener un monto de mensualidad mayor a 0',
+      );
+    }
+
     const cliente = this.clienteRepository.create({
       ...createClienteDto,
       userId,
@@ -74,6 +81,21 @@ export class ClientesService {
       }
     }
 
+    // Validar que si se marca como cliente fijo, tenga monto de mensualidad
+    const esClienteFijo = updateClienteDto.esClienteFijo !== undefined
+      ? updateClienteDto.esClienteFijo
+      : cliente.esClienteFijo;
+
+    const montoMensualidad = updateClienteDto.montoMensualidad !== undefined
+      ? updateClienteDto.montoMensualidad
+      : cliente.montoMensualidad;
+
+    if (esClienteFijo && (!montoMensualidad || montoMensualidad <= 0)) {
+      throw new BadRequestException(
+        'Los clientes fijos deben tener un monto de mensualidad mayor a 0',
+      );
+    }
+
     Object.assign(cliente, updateClienteDto);
     return await this.clienteRepository.save(cliente);
   }
@@ -107,16 +129,33 @@ export class ClientesService {
   }
 
   async getStats(userId: string) {
-    const [total, activos, inactivos] = await Promise.all([
+    const [total, activos, inactivos, clientesFijos] = await Promise.all([
       this.clienteRepository.count({ where: { userId } }),
       this.clienteRepository.count({ where: { userId, activo: true } }),
       this.clienteRepository.count({ where: { userId, activo: false } }),
+      this.clienteRepository.count({ where: { userId, esClienteFijo: true, activo: true } }),
     ]);
 
     return {
       total,
       activos,
       inactivos,
+      clientesFijos,
     };
+  }
+
+  /**
+   * Obtiene todos los clientes fijos activos de un usuario
+   * Útil para generar operaciones mensuales automáticas
+   */
+  async getClientesFijos(userId: string): Promise<Cliente[]> {
+    return await this.clienteRepository.find({
+      where: {
+        userId,
+        esClienteFijo: true,
+        activo: true
+      },
+      order: { nombre: 'ASC' },
+    });
   }
 }

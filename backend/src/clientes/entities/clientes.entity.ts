@@ -10,6 +10,11 @@ import {
 } from 'typeorm';
 import { User } from '../../auth/entities/user.entity';
 
+export enum CondicionFiscal {
+  RESPONSABLE_INSCRIPTO = 'RESPONSABLE_INSCRIPTO',
+  MONOTRIBUTISTA = 'MONOTRIBUTISTA',
+}
+
 @Entity('clientes')
 export class Cliente {
   @PrimaryGeneratedColumn('uuid')
@@ -29,6 +34,20 @@ export class Cliente {
 
   @Column({ default: true })
   activo: boolean;
+
+  @Column({ name: 'es_cliente_fijo', type: 'boolean', default: false })
+  esClienteFijo: boolean;
+
+  @Column({ name: 'monto_mensualidad', type: 'decimal', precision: 10, scale: 2, default: 0 })
+  montoMensualidad: number;
+
+  @Column({
+    name: 'condicion_fiscal',
+    type: 'enum',
+    enum: CondicionFiscal,
+    default: CondicionFiscal.RESPONSABLE_INSCRIPTO,
+  })
+  condicionFiscal: CondicionFiscal;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

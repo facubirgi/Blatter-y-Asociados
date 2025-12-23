@@ -6,6 +6,8 @@ import {
   UpdateDateColumn,
   ManyToOne,
   JoinColumn,
+  BeforeInsert,
+  BeforeUpdate,
 } from 'typeorm';
 import { User } from '../../auth/entities/user.entity';
 import { Cliente } from '../../clientes/entities/clientes.entity';
@@ -38,11 +40,24 @@ export class Operacion {
   @Column({ type: 'text', nullable: true })
   descripcion: string | null;
 
+  // DEPRECADO - Mantener temporalmente para coexistencia (eliminar después de 1 semana)
+  @Column({ type: 'decimal', precision: 10, scale: 2, default: 0, nullable: true })
+  monto?: number;
+
+  @Column({ name: 'ingresos_brutos', type: 'decimal', precision: 10, scale: 2, default: 0 })
+  ingresosBrutos: number;
+
   @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
-  monto: number;
+  honorarios: number;
+
+  @Column({ name: 'monto_total', type: 'decimal', precision: 10, scale: 2, default: 0 })
+  montoTotal: number;
 
   @Column({ type: 'decimal', precision: 10, scale: 2, default: 0, name: 'monto_pagado' })
   montoPagado: number;
+
+  @Column({ name: 'es_mensualidad', type: 'boolean', default: false })
+  esMensualidad: boolean;
 
   @Column({
     type: 'enum',
@@ -84,4 +99,11 @@ export class Operacion {
 
   @Column({ name: 'user_id' })
   userId: string;
+
+  // Hook para calcular montoTotal automáticamente (GARANTÍA DE INTEGRIDAD)
+  @BeforeInsert()
+  @BeforeUpdate()
+  calcularMontoTotal() {
+    this.montoTotal = Number(this.honorarios);
+  }
 }

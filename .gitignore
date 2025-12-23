@@ -60,3 +60,21 @@ Thumbs.db
 # Logs
 **/logs/
 **/*.log
+
+# Docker
+**/docker-compose.override.yml
+
+# Backups
+backups/*.sql
+backups/*.sql.gz
+backups/**/*.sql
+backups/**/*.sql.gz
+
+# SSL Certificates
+**/*.pem
+**/*.key
+**/*.crt
+**/certs/
+
+# Production files
+.env.production

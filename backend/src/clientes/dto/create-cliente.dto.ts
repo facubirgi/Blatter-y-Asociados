@@ -5,7 +5,13 @@ import {
   IsDateString,
   Matches,
   MinLength,
+  IsBoolean,
+  IsNumber,
+  IsEnum,
+  IsOptional,
+  Min,
 } from 'class-validator';
+import { CondicionFiscal } from '../entities/clientes.entity';
 
 export class CreateClienteDto {
   @ApiProperty({
@@ -46,4 +52,33 @@ export class CreateClienteDto {
   @IsString()
   @IsNotEmpty({ message: 'El contacto es obligatorio' })
   contacto: string;
+
+  @ApiProperty({
+    example: false,
+    description: 'Indica si el cliente tiene mensualidad fija',
+    required: false,
+  })
+  @IsBoolean({ message: 'esClienteFijo debe ser un booleano' })
+  @IsOptional()
+  esClienteFijo?: boolean;
+
+  @ApiProperty({
+    example: 50000,
+    description: 'Monto de la mensualidad (solo si esClienteFijo es true)',
+    required: false,
+  })
+  @IsNumber({}, { message: 'montoMensualidad debe ser un número' })
+  @Min(0, { message: 'El monto de mensualidad debe ser mayor o igual a 0' })
+  @IsOptional()
+  montoMensualidad?: number;
+
+  @ApiProperty({
+    example: CondicionFiscal.RESPONSABLE_INSCRIPTO,
+    description: 'Condición fiscal del cliente',
+    enum: CondicionFiscal,
+    required: false,
+  })
+  @IsEnum(CondicionFiscal, { message: 'Condición fiscal inválida' })
+  @IsOptional()
+  condicionFiscal?: CondicionFiscal;
 }
