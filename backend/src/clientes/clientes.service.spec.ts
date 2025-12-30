@@ -10,6 +10,7 @@ import {
 } from '@nestjs/common';
 import { CreateClienteDto } from './dto/create-cliente.dto';
 import { UpdateClienteDto } from './dto/update-cliente.dto';
+import { Operacion } from '../operaciones/entities/operacion.entity';
 
 describe('ClientesService', () => {
   let service: ClientesService;
@@ -41,6 +42,11 @@ describe('ClientesService', () => {
     createQueryBuilder: jest.fn(),
   };
 
+  const mockOperacionRepository = {
+    count: jest.fn(),
+    find: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -48,6 +54,10 @@ describe('ClientesService', () => {
         {
           provide: getRepositoryToken(Cliente),
           useValue: mockRepository,
+        },
+        {
+          provide: getRepositoryToken(Operacion),
+          useValue: mockOperacionRepository,
         },
       ],
     }).compile();
@@ -253,14 +263,31 @@ describe('ClientesService', () => {
   });
 
   describe('remove', () => {
-    it('debe eliminar un cliente', async () => {
+    it('debe eliminar un cliente sin operaciones', async () => {
       mockRepository.findOne.mockResolvedValue(mockCliente);
+      mockOperacionRepository.count.mockResolvedValue(0);
       mockRepository.remove.mockResolvedValue(mockCliente);
 
       const result = await service.remove(mockCliente.id, mockUserId);
 
+      expect(mockOperacionRepository.count).toHaveBeenCalledWith({
+        where: { clienteId: mockCliente.id },
+      });
       expect(repository.remove).toHaveBeenCalledWith(mockCliente);
       expect(result.message).toBe('Cliente eliminado correctamente');
+    });
+
+    it('debe lanzar ConflictException si el cliente tiene operaciones', async () => {
+      mockRepository.findOne.mockResolvedValue(mockCliente);
+      mockOperacionRepository.count.mockResolvedValue(3);
+
+      await expect(service.remove(mockCliente.id, mockUserId)).rejects.toThrow(
+        ConflictException,
+      );
+      expect(mockOperacionRepository.count).toHaveBeenCalledWith({
+        where: { clienteId: mockCliente.id },
+      });
+      expect(repository.remove).not.toHaveBeenCalled();
     });
 
     it('debe lanzar NotFoundException si el cliente no existe', async () => {
@@ -358,20 +385,23 @@ describe('ClientesService', () => {
       mockRepository.count
         .mockResolvedValueOnce(50) // total
         .mockResolvedValueOnce(40) // activos
-        .mockResolvedValueOnce(10); // inactivos
+        .mockResolvedValueOnce(10) // inactivos
+        .mockResolvedValueOnce(25); // clientesFijos
 
       const result = await service.getStats(mockUserId);
 
-      expect(repository.count).toHaveBeenCalledTimes(3);
+      expect(repository.count).toHaveBeenCalledTimes(4);
       expect(result).toEqual({
         total: 50,
         activos: 40,
         inactivos: 10,
+        clientesFijos: 25,
       });
     });
 
     it('debe retornar 0 si no hay clientes', async () => {
       mockRepository.count
+        .mockResolvedValueOnce(0)
         .mockResolvedValueOnce(0)
         .mockResolvedValueOnce(0)
         .mockResolvedValueOnce(0);
@@ -382,6 +412,7 @@ describe('ClientesService', () => {
         total: 0,
         activos: 0,
         inactivos: 0,
+        clientesFijos: 0,
       });
     });
   });
