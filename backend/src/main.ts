@@ -21,7 +21,8 @@ async function bootstrap() {
       : 'http://localhost:5173';
 
   app.enableCors({
-    origin: allowedOrigins,
+    origin: 'blatter-y-asociados-production.up.railway.app',
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
   });
 
