@@ -15,15 +15,26 @@ async function bootstrap() {
   app.use(compression());
 
   // 🌐 Habilitar CORS para el frontend
-  const allowedOrigins =
-    process.env.NODE_ENV === 'production'
-      ? process.env.FRONTEND_URL || 'https://estudioblatter.netlify.app'
-      : 'http://localhost:5173';
+  const allowedOrigins = [
+    'https://estudioblatter.netlify.app',
+    'http://localhost:5173',
+    'http://localhost:3000',
+  ];
 
   app.enableCors({
-    origin: allowedOrigins,
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    origin: (origin, callback) => {
+      // Permitir requests sin origin (como mobile apps o curl)
+      if (!origin) return callback(null, true);
+      
+      if (allowedOrigins.indexOf(origin) !== -1 || process.env.FRONTEND_URL === origin) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
   });
 
   // Validación global de DTOs
