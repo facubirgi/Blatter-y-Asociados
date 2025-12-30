@@ -21,15 +21,16 @@ describe('ClientesService', () => {
     id: 'cliente-456',
     nombre: 'Empresa Test SA',
     cuit: '20-12345678-9',
-    email: 'empresa@test.com',
-    telefono: '1234567890',
-    direccion: 'Calle Falsa 123',
-    contacto: 'Juan Pérez',
+    fechaAlta: new Date('2024-01-15'),
+    contacto: 'juan.perez@gmail.com',
     activo: true,
+    esClienteFijo: false,
+    montoMensualidad: 0,
+    condicionFiscal: 'RESPONSABLE_INSCRIPTO' as any,
     userId: mockUserId,
     createdAt: new Date(),
     updatedAt: new Date(),
-    operaciones: [],
+    usuario: {} as any,
   };
 
   const mockRepository = {
@@ -76,10 +77,8 @@ describe('ClientesService', () => {
     const createDto: CreateClienteDto = {
       nombre: 'Nueva Empresa SA',
       cuit: '30-98765432-1',
-      email: 'nueva@empresa.com',
-      telefono: '0987654321',
-      direccion: 'Av. Principal 456',
-      contacto: 'María García',
+      fechaAlta: '2024-01-15',
+      contacto: 'maria.garcia@gmail.com',
     };
 
     it('debe crear un cliente exitosamente', async () => {
@@ -187,7 +186,7 @@ describe('ClientesService', () => {
   describe('update', () => {
     const updateDto: UpdateClienteDto = {
       nombre: 'Empresa Actualizada SA',
-      telefono: '1111111111',
+      contacto: 'nuevo.contacto@gmail.com',
     };
 
     it('debe actualizar un cliente exitosamente', async () => {
@@ -201,7 +200,7 @@ describe('ClientesService', () => {
 
       expect(repository.save).toHaveBeenCalled();
       expect(result.nombre).toBe(updateDto.nombre);
-      expect(result.telefono).toBe(updateDto.telefono);
+      expect(result.contacto).toBe(updateDto.contacto);
     });
 
     it('debe actualizar el CUIT si no existe conflicto', async () => {

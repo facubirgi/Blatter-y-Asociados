@@ -2,11 +2,12 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { OperacionesService } from './operaciones.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Operacion, EstadoOperacion, TipoOperacion } from './entities/operacion.entity';
-import { Repository } from 'typeorm';
+import { Repository, DataSource } from 'typeorm';
 import { ClientesService } from '../clientes/clientes.service';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { CreateOperacionDto } from './dto/create-operacion.dto';
 import { UpdateOperacionDto } from './dto/update-operacion.dto';
+import { User } from '../auth/entities/user.entity';
 
 describe('OperacionesService', () => {
   let service: OperacionesService;
@@ -33,15 +34,17 @@ describe('OperacionesService', () => {
     monto: 10000,
     montoPagado: 0,
     estado: EstadoOperacion.PENDIENTE,
-    fechaInicio: '2025-01-01',
-    fechaLimite: '2025-01-31',
+    fechaInicio: new Date('2025-01-01'),
+    fechaLimite: new Date('2025-01-31'),
     fechaCompletado: null,
-    notas: null,
+    notas: '',
+    esMensualidad: false,
     clienteId: mockClienteId,
     userId: mockUserId,
     createdAt: new Date(),
     updatedAt: new Date(),
     cliente: mockCliente as any,
+    usuario: {} as User,
   };
 
   // Mock del Repository
@@ -61,6 +64,16 @@ describe('OperacionesService', () => {
     findOne: jest.fn(),
   };
 
+  // Mock del DataSource
+  const mockDataSource = {
+    createQueryRunner: jest.fn(),
+  };
+
+  // Mock del UserRepository
+  const mockUserRepository = {
+    findOne: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -70,8 +83,16 @@ describe('OperacionesService', () => {
           useValue: mockRepository,
         },
         {
+          provide: getRepositoryToken(User),
+          useValue: mockUserRepository,
+        },
+        {
           provide: ClientesService,
           useValue: mockClientesService,
+        },
+        {
+          provide: DataSource,
+          useValue: mockDataSource,
         },
       ],
     }).compile();
@@ -431,7 +452,7 @@ describe('OperacionesService', () => {
         where: jest.fn().mockReturnThis(),
         andWhere: jest.fn().mockReturnThis(),
         getRawOne: jest.fn()
-          .mockResolvedValueOnce({ total: '500000' }) // montoTotal
+          .mockResolvedValueOnce({ total: '500000' }) // montoTotal (suma de todos los montos)
           .mockResolvedValueOnce({ total: '100000' }) // montoPendiente
           .mockResolvedValueOnce({ total: '200000' }) // montoEnProceso
           .mockResolvedValueOnce({ total: '200000' }), // montoCompletado

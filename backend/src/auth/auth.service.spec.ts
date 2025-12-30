@@ -29,11 +29,9 @@ describe('AuthService', () => {
     nombre: 'Usuario Test',
     rol: 'usuario',
     activo: true,
-    fotoPerfil: null,
+    fotoPerfil: '',
     createdAt: new Date(),
     updatedAt: new Date(),
-    operaciones: [],
-    clientes: [],
   };
 
   const mockUserRepository = {
