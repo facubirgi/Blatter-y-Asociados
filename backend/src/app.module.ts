@@ -51,7 +51,8 @@ import { HealthModule } from './health/health.module';
         password: configService.get('DB_PASSWORD'),
         database: configService.get('DB_DATABASE'),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        synchronize: configService.get('NODE_ENV') === 'development', // Solo en desarrollo
+        ssl: configService.get('NODE_ENV') === 'production' ? { rejectUnauthorized: false } : false,
+        synchronize: configService.get('NODE_ENV') !== 'production', // Solo en desarrollo
         logging: configService.get('NODE_ENV') === 'development',
       }),
     }),
