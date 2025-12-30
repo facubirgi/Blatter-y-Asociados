@@ -17,11 +17,11 @@ async function bootstrap() {
   // 🌐 Habilitar CORS para el frontend
   const allowedOrigins =
     process.env.NODE_ENV === 'production'
-      ? process.env.FRONTEND_URL || 'http://localhost:5173'
+      ? process.env.FRONTEND_URL || 'https://estudioblatter.netlify.app'
       : 'http://localhost:5173';
 
   app.enableCors({
-    origin: 'blatter-y-asociados-production.up.railway.app',
+    origin: allowedOrigins,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
   });
