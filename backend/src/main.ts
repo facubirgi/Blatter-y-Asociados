@@ -14,24 +14,14 @@ async function bootstrap() {
   // ⚡ Performance: Compresión gzip
   app.use(compression());
 
-  // 🌐 Habilitar CORS para el frontend
-  const allowedOrigins = [
-    'https://estudioblatter.netlify.app',
-    'http://localhost:5173',
-    'http://localhost:3000',
-  ];
-
+  // 🌐 Habilitar CORS (Modificado para asegurar conexión con Netlify)
   app.enableCors({
-    origin: (origin, callback) => {
-      // Permitir requests sin origin (como mobile apps o curl)
-      if (!origin) return callback(null, true);
-      
-      if (allowedOrigins.indexOf(origin) !== -1 || process.env.FRONTEND_URL === origin) {
-        callback(null, true);
-      } else {
-        callback(new Error('Not allowed by CORS'));
-      }
-    },
+    origin: [
+      'https://estudioblatter.netlify.app', // 1. Tu frontend en PROD (Netlify)
+      'http://localhost:5173',              // 2. Tu frontend en LOCAL (Vite)
+      'http://localhost:3000',              // 3. Pruebas locales
+      process.env.FRONTEND_URL,             // 4. Variable de entorno de Railway (por si acaso)
+    ].filter((url): url is string => Boolean(url)), // Type guard explícito
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
