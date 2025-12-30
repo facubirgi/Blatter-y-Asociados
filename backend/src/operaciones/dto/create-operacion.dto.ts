@@ -44,7 +44,8 @@ export class CreateOperacionDto {
 
   @ApiProperty({
     example: '2024-02-15',
-    description: 'Fecha límite de la operación (formato: YYYY-MM-DD) (opcional)',
+    description:
+      'Fecha límite de la operación (formato: YYYY-MM-DD) (opcional)',
     required: false,
   })
   @IsDateString(

@@ -1,7 +1,13 @@
 import { PartialType } from '@nestjs/swagger';
 import { CreateOperacionDto } from './create-operacion.dto';
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEnum, IsOptional, IsDateString, IsNumber, Min } from 'class-validator';
+import {
+  IsEnum,
+  IsOptional,
+  IsDateString,
+  IsNumber,
+  Min,
+} from 'class-validator';
 import { EstadoOperacion } from '../entities/operacion.entity';
 
 export class UpdateOperacionDto extends PartialType(CreateOperacionDto) {
@@ -20,13 +26,15 @@ export class UpdateOperacionDto extends PartialType(CreateOperacionDto) {
   })
   @IsDateString(
     {},
-    { message: 'La fecha de completado debe ser una fecha válida (YYYY-MM-DD)' },
+    {
+      message: 'La fecha de completado debe ser una fecha válida (YYYY-MM-DD)',
+    },
   )
   @IsOptional()
   fechaCompletado?: string;
 
   @ApiPropertyOptional({
-    example: 5000.00,
+    example: 5000.0,
     description: 'Monto pagado parcialmente',
   })
   @IsNumber({}, { message: 'El monto pagado debe ser un número válido' })

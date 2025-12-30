@@ -40,7 +40,9 @@ async function bootstrap() {
   // Configuración de Swagger
   const config = new DocumentBuilder()
     .setTitle('CRM Contable API')
-    .setDescription('API para gestión de clientes y operaciones de estudio contable')
+    .setDescription(
+      'API para gestión de clientes y operaciones de estudio contable',
+    )
     .setVersion('1.0')
     .addTag('Autenticación', 'Endpoints de autenticación y gestión de usuarios')
     .addTag('Clientes', 'Gestión de clientes del estudio')

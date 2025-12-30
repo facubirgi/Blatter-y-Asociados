@@ -31,7 +31,11 @@ export class ClientesService {
     }
 
     // Validar que si es cliente fijo, tenga monto de mensualidad
-    if (createClienteDto.esClienteFijo && (!createClienteDto.montoMensualidad || createClienteDto.montoMensualidad <= 0)) {
+    if (
+      createClienteDto.esClienteFijo &&
+      (!createClienteDto.montoMensualidad ||
+        createClienteDto.montoMensualidad <= 0)
+    ) {
       throw new BadRequestException(
         'Los clientes fijos deben tener un monto de mensualidad mayor a 0',
       );
@@ -85,13 +89,15 @@ export class ClientesService {
     }
 
     // Validar que si se marca como cliente fijo, tenga monto de mensualidad
-    const esClienteFijo = updateClienteDto.esClienteFijo !== undefined
-      ? updateClienteDto.esClienteFijo
-      : cliente.esClienteFijo;
+    const esClienteFijo =
+      updateClienteDto.esClienteFijo !== undefined
+        ? updateClienteDto.esClienteFijo
+        : cliente.esClienteFijo;
 
-    const montoMensualidad = updateClienteDto.montoMensualidad !== undefined
-      ? updateClienteDto.montoMensualidad
-      : cliente.montoMensualidad;
+    const montoMensualidad =
+      updateClienteDto.montoMensualidad !== undefined
+        ? updateClienteDto.montoMensualidad
+        : cliente.montoMensualidad;
 
     if (esClienteFijo && (!montoMensualidad || montoMensualidad <= 0)) {
       throw new BadRequestException(
@@ -105,7 +111,7 @@ export class ClientesService {
 
   async remove(id: string, userId: string) {
     const cliente = await this.findOne(id, userId);
-    
+
     // Verificar si el cliente tiene operaciones asociadas
     const operacionesCount = await this.operacionRepository.count({
       where: { clienteId: id },
@@ -148,7 +154,9 @@ export class ClientesService {
       this.clienteRepository.count({ where: { userId } }),
       this.clienteRepository.count({ where: { userId, activo: true } }),
       this.clienteRepository.count({ where: { userId, activo: false } }),
-      this.clienteRepository.count({ where: { userId, esClienteFijo: true, activo: true } }),
+      this.clienteRepository.count({
+        where: { userId, esClienteFijo: true, activo: true },
+      }),
     ]);
 
     return {
@@ -168,7 +176,7 @@ export class ClientesService {
       where: {
         userId,
         esClienteFijo: true,
-        activo: true
+        activo: true,
       },
       order: { nombre: 'ASC' },
     });

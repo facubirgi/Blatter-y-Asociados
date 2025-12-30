@@ -83,7 +83,13 @@ export class OperacionesController {
     @Query('page', new ParseIntPipe({ optional: true })) page?: number,
     @Query('limit', new ParseIntPipe({ optional: true })) limit?: number,
   ) {
-    return this.operacionesService.findAll(user.id, estado, clienteId, page, limit);
+    return this.operacionesService.findAll(
+      user.id,
+      estado,
+      clienteId,
+      page,
+      limit,
+    );
   }
 
   @Get('stats')
@@ -109,10 +115,7 @@ export class OperacionesController {
     @GetUser() user: User,
     @Query('dias', new ParseIntPipe({ optional: true })) dias?: number,
   ) {
-    return this.operacionesService.getProximosVencimientos(
-      user.id,
-      dias || 7,
-    );
+    return this.operacionesService.getProximosVencimientos(user.id, dias || 7);
   }
 
   @Get('vencidas')
@@ -234,7 +237,8 @@ export class OperacionesController {
   @Patch('fix-montos-mensualidades')
   @ApiOperation({
     summary: 'Corregir montos de operaciones de mensualidad con monto 0',
-    description: 'Este endpoint actualiza las operaciones de mensualidad que tienen monto 0 y deberían tener el monto del cliente',
+    description:
+      'Este endpoint actualiza las operaciones de mensualidad que tienen monto 0 y deberían tener el monto del cliente',
   })
   @ApiResponse({
     status: 200,
@@ -283,7 +287,9 @@ export class OperacionesController {
   }
 
   @Patch(':id/pago')
-  @ApiOperation({ summary: 'Registrar un pago parcial o total para una operación' })
+  @ApiOperation({
+    summary: 'Registrar un pago parcial o total para una operación',
+  })
   @ApiResponse({ status: 200, description: 'Pago registrado exitosamente' })
   @ApiResponse({ status: 400, description: 'El pago excede el monto total' })
   @ApiResponse({ status: 404, description: 'Operación no encontrada' })

@@ -266,7 +266,10 @@ describe('AuthService', () => {
         nombre: updateDtoOnlyName.nombre,
       });
 
-      const result = await service.updateProfile(mockUser.id, updateDtoOnlyName);
+      const result = await service.updateProfile(
+        mockUser.id,
+        updateDtoOnlyName,
+      );
 
       expect(result.nombre).toBe(updateDtoOnlyName.nombre);
     });
@@ -279,7 +282,10 @@ describe('AuthService', () => {
         fotoPerfil: updateDtoOnlyPhoto.fotoPerfil,
       });
 
-      const result = await service.updateProfile(mockUser.id, updateDtoOnlyPhoto);
+      const result = await service.updateProfile(
+        mockUser.id,
+        updateDtoOnlyPhoto,
+      );
 
       expect(result.fotoPerfil).toBe(updateDtoOnlyPhoto.fotoPerfil);
     });

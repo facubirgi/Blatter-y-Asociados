@@ -50,8 +50,7 @@ export class ClientesController {
   })
   @ApiResponse({ status: 200, description: 'Lista de clientes' })
   findAll(@GetUser() user: User, @Query('activo') activo?: string) {
-    const activoBoolean =
-      activo !== undefined ? activo === 'true' : undefined;
+    const activoBoolean = activo !== undefined ? activo === 'true' : undefined;
     return this.clientesService.findAll(user.id, activoBoolean);
   }
 

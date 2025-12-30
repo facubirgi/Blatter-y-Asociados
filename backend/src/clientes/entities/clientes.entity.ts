@@ -38,7 +38,13 @@ export class Cliente {
   @Column({ name: 'es_cliente_fijo', type: 'boolean', default: false })
   esClienteFijo: boolean;
 
-  @Column({ name: 'monto_mensualidad', type: 'decimal', precision: 10, scale: 2, default: 0 })
+  @Column({
+    name: 'monto_mensualidad',
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+    default: 0,
+  })
   montoMensualidad: number;
 
   @Column({

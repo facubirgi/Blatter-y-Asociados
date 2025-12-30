@@ -1,7 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { OperacionesService } from './operaciones.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Operacion, EstadoOperacion, TipoOperacion } from './entities/operacion.entity';
+import {
+  Operacion,
+  EstadoOperacion,
+  TipoOperacion,
+} from './entities/operacion.entity';
 import { Repository, DataSource } from 'typeorm';
 import { ClientesService } from '../clientes/clientes.service';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
@@ -98,7 +102,9 @@ describe('OperacionesService', () => {
     }).compile();
 
     service = module.get<OperacionesService>(OperacionesService);
-    repository = module.get<Repository<Operacion>>(getRepositoryToken(Operacion));
+    repository = module.get<Repository<Operacion>>(
+      getRepositoryToken(Operacion),
+    );
     clientesService = module.get<ClientesService>(ClientesService);
 
     // Limpiar mocks antes de cada test
@@ -127,7 +133,10 @@ describe('OperacionesService', () => {
 
       const result = await service.create(createDto, mockUserId);
 
-      expect(clientesService.findOne).toHaveBeenCalledWith(mockClienteId, mockUserId);
+      expect(clientesService.findOne).toHaveBeenCalledWith(
+        mockClienteId,
+        mockUserId,
+      );
       expect(repository.create).toHaveBeenCalledWith({
         ...createDto,
         userId: mockUserId,
@@ -142,7 +151,10 @@ describe('OperacionesService', () => {
       await expect(service.create(createDto, mockUserId)).rejects.toThrow(
         NotFoundException,
       );
-      expect(clientesService.findOne).toHaveBeenCalledWith(mockClienteId, mockUserId);
+      expect(clientesService.findOne).toHaveBeenCalledWith(
+        mockClienteId,
+        mockUserId,
+      );
     });
 
     it('debe lanzar BadRequestException si fechaInicio > fechaLimite', async () => {
@@ -187,7 +199,13 @@ describe('OperacionesService', () => {
       const total = 25;
       mockRepository.findAndCount.mockResolvedValue([mockData, total]);
 
-      const result = await service.findAll(mockUserId, undefined, undefined, 1, 20);
+      const result = await service.findAll(
+        mockUserId,
+        undefined,
+        undefined,
+        1,
+        20,
+      );
 
       expect(repository.findAndCount).toHaveBeenCalled();
       expect(result.data).toEqual(mockData);
@@ -243,7 +261,11 @@ describe('OperacionesService', () => {
       mockRepository.findOne.mockResolvedValue(mockOperacion);
       mockRepository.save.mockResolvedValue({ ...mockOperacion, ...updateDto });
 
-      const result = await service.update(mockOperacion.id, updateDto, mockUserId);
+      const result = await service.update(
+        mockOperacion.id,
+        updateDto,
+        mockUserId,
+      );
 
       expect(repository.save).toHaveBeenCalled();
       expect(result.descripcion).toBe(updateDto.descripcion);
@@ -261,7 +283,11 @@ describe('OperacionesService', () => {
         estado: EstadoOperacion.PENDIENTE,
       });
 
-      const result = await service.update(mockOperacion.id, updateDto, mockUserId);
+      const result = await service.update(
+        mockOperacion.id,
+        updateDto,
+        mockUserId,
+      );
 
       expect(result.estado).toBe(EstadoOperacion.PENDIENTE);
     });
@@ -278,7 +304,11 @@ describe('OperacionesService', () => {
         estado: EstadoOperacion.EN_PROCESO,
       });
 
-      const result = await service.update(mockOperacion.id, updateDto, mockUserId);
+      const result = await service.update(
+        mockOperacion.id,
+        updateDto,
+        mockUserId,
+      );
 
       expect(result.estado).toBe(EstadoOperacion.EN_PROCESO);
     });
@@ -296,7 +326,11 @@ describe('OperacionesService', () => {
         fechaCompletado: '2025-01-15',
       });
 
-      const result = await service.update(mockOperacion.id, updateDto, mockUserId);
+      const result = await service.update(
+        mockOperacion.id,
+        updateDto,
+        mockUserId,
+      );
 
       expect(result.estado).toBe(EstadoOperacion.COMPLETADO);
       expect(result.fechaCompletado).toBeDefined();
@@ -451,7 +485,8 @@ describe('OperacionesService', () => {
         select: jest.fn().mockReturnThis(),
         where: jest.fn().mockReturnThis(),
         andWhere: jest.fn().mockReturnThis(),
-        getRawOne: jest.fn()
+        getRawOne: jest
+          .fn()
           .mockResolvedValueOnce({ total: '500000' }) // montoTotal (suma de todos los montos)
           .mockResolvedValueOnce({ total: '100000' }) // montoPendiente
           .mockResolvedValueOnce({ total: '200000' }) // montoEnProceso

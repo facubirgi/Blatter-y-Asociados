@@ -41,7 +41,13 @@ export class Operacion {
   @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
   monto: number;
 
-  @Column({ type: 'decimal', precision: 10, scale: 2, default: 0, name: 'monto_pagado' })
+  @Column({
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+    default: 0,
+    name: 'monto_pagado',
+  })
   montoPagado: number;
 
   @Column({ name: 'es_mensualidad', type: 'boolean', default: false })

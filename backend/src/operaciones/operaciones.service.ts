@@ -6,13 +6,26 @@ import {
   Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between, LessThanOrEqual, MoreThanOrEqual, DataSource } from 'typeorm';
+import {
+  Repository,
+  Between,
+  LessThanOrEqual,
+  MoreThanOrEqual,
+  DataSource,
+} from 'typeorm';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { Operacion, EstadoOperacion, TipoOperacion } from './entities/operacion.entity';
+import {
+  Operacion,
+  EstadoOperacion,
+  TipoOperacion,
+} from './entities/operacion.entity';
 import { CreateOperacionDto } from './dto/create-operacion.dto';
 import { UpdateOperacionDto } from './dto/update-operacion.dto';
 import { ReporteOperacionDto } from './dto/reporte-operacion.dto';
-import { EstadisticasAnualesDto, MesEstadisticaDto } from './dto/estadisticas-anuales.dto';
+import {
+  EstadisticasAnualesDto,
+  MesEstadisticaDto,
+} from './dto/estadisticas-anuales.dto';
 import { ClientesService } from '../clientes/clientes.service';
 import { User } from '../auth/entities/user.entity';
 
@@ -134,9 +147,10 @@ export class OperacionesService {
     // Si se está actualizando el monto pagado, validar y actualizar estado automáticamente
     if (updateOperacionDto.montoPagado !== undefined) {
       // Calcular monto considerando posibles actualizaciones
-      const monto = updateOperacionDto.monto !== undefined
-        ? Number(updateOperacionDto.monto)
-        : Number(operacion.monto);
+      const monto =
+        updateOperacionDto.monto !== undefined
+          ? Number(updateOperacionDto.monto)
+          : Number(operacion.monto);
       const nuevoMontoPagado = Number(updateOperacionDto.montoPagado);
 
       // Validar que el monto pagado no exceda el monto total
@@ -156,7 +170,9 @@ export class OperacionesService {
       } else if (nuevoMontoPagado >= monto) {
         updateOperacionDto.estado = EstadoOperacion.COMPLETADO;
         if (!updateOperacionDto.fechaCompletado && !operacion.fechaCompletado) {
-          updateOperacionDto.fechaCompletado = new Date().toISOString().split('T')[0];
+          updateOperacionDto.fechaCompletado = new Date()
+            .toISOString()
+            .split('T')[0];
         }
       }
     }
@@ -167,7 +183,9 @@ export class OperacionesService {
       !updateOperacionDto.fechaCompletado &&
       !operacion.fechaCompletado
     ) {
-      updateOperacionDto.fechaCompletado = new Date().toISOString().split('T')[0];
+      updateOperacionDto.fechaCompletado = new Date()
+        .toISOString()
+        .split('T')[0];
     }
 
     // Validar fechas si se están actualizando
@@ -194,7 +212,9 @@ export class OperacionesService {
 
   async cambiarEstado(id: string, estado: EstadoOperacion, userId: string) {
     const operacion = await this.findOne(id, userId);
-    this.logger.log(`Cambiando estado de operación ${id} de ${operacion.estado} a ${estado}`);
+    this.logger.log(
+      `Cambiando estado de operación ${id} de ${operacion.estado} a ${estado}`,
+    );
     this.logger.log(`  - fechaInicio: ${operacion.fechaInicio}`);
     this.logger.log(`  - updatedAt ANTES: ${operacion.updatedAt}`);
 
@@ -208,7 +228,9 @@ export class OperacionesService {
       }
       // Marcar como totalmente pagado
       operacion.montoPagado = operacion.monto;
-      this.logger.log(`  - montoPagado actualizado a: ${operacion.montoPagado}`);
+      this.logger.log(
+        `  - montoPagado actualizado a: ${operacion.montoPagado}`,
+      );
     }
 
     const resultado = await this.operacionRepository.save(operacion);
@@ -415,7 +437,9 @@ export class OperacionesService {
         fechaFormateada = op.fechaCompletado.toISOString().split('T')[0];
       } else {
         // Valor inválido, usar fecha actual como fallback
-        this.logger.warn(`Fecha completado inválida para operación ${op.id}: ${op.fechaCompletado}`);
+        this.logger.warn(
+          `Fecha completado inválida para operación ${op.id}: ${op.fechaCompletado}`,
+        );
         fechaFormateada = new Date().toISOString().split('T')[0];
       }
 
@@ -428,7 +452,9 @@ export class OperacionesService {
         // Convertir string a número y redondear a 2 decimales
         const parsed = Number(op.montoTotal);
         if (isNaN(parsed)) {
-          this.logger.warn(`Monto total inválido para operación ${op.id}: ${op.montoTotal}`);
+          this.logger.warn(
+            `Monto total inválido para operación ${op.id}: ${op.montoTotal}`,
+          );
           montoTotal = 0;
         } else {
           montoTotal = Math.round(parsed * 100) / 100; // Redondear a 2 decimales
@@ -494,7 +520,9 @@ export class OperacionesService {
           .andWhere('operacion.fechaCompletado >= :primerDia', {
             primerDia,
           })
-          .andWhere('operacion.fechaCompletado <= :ultimoDiaMes', { ultimoDiaMes })
+          .andWhere('operacion.fechaCompletado <= :ultimoDiaMes', {
+            ultimoDiaMes,
+          })
           .getRawOne();
 
         return {
@@ -547,7 +575,10 @@ export class OperacionesService {
         `Generación automática completada: ${totalGeneradas} mensualidades para ${totalUsuarios} usuarios`,
       );
     } catch (error) {
-      this.logger.error('Error en generación automática de mensualidades:', error);
+      this.logger.error(
+        'Error en generación automática de mensualidades:',
+        error,
+      );
     }
   }
 
@@ -559,7 +590,12 @@ export class OperacionesService {
    * @param anio - Año (YYYY), por defecto el año actual
    * @returns Información sobre las operaciones generadas
    */
-  async generarMensualidades(userId: string, dia?: number, mes?: number, anio?: number) {
+  async generarMensualidades(
+    userId: string,
+    dia?: number,
+    mes?: number,
+    anio?: number,
+  ) {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -572,7 +608,15 @@ export class OperacionesService {
 
       // 1. Verificar si ya existen mensualidades para este día específico
       const fechaInicio = new Date(anioActual, mesActual - 1, diaActual);
-      const fechaFinDia = new Date(anioActual, mesActual - 1, diaActual, 23, 59, 59, 999);
+      const fechaFinDia = new Date(
+        anioActual,
+        mesActual - 1,
+        diaActual,
+        23,
+        59,
+        59,
+        999,
+      );
 
       const mensualidadesExistentes = await this.operacionRepository
         .createQueryBuilder('op')
@@ -654,19 +698,19 @@ export class OperacionesService {
       };
     } catch (error) {
       await queryRunner.rollbackTransaction();
-      
+
       // Log detallado del error
       this.logger.error(
         `Error al generar mensualidades para usuario ${userId}`,
       );
       this.logger.error(`Mensaje: ${error.message}`);
       this.logger.error(`Stack: ${error.stack}`);
-      
+
       // Si es un BadRequestException (validación), lo propagamos tal cual
       if (error instanceof BadRequestException) {
         throw error;
       }
-      
+
       // Para otros errores, proporcionamos más contexto
       throw new BadRequestException(
         `Error al generar mensualidades: ${error.message}`,
@@ -695,7 +739,8 @@ export class OperacionesService {
       if (operacionesConMontoInvalido.length === 0) {
         return {
           actualizadas: 0,
-          mensaje: 'No hay operaciones de mensualidad con monto 0 para corregir',
+          mensaje:
+            'No hay operaciones de mensualidad con monto 0 para corregir',
         };
       }
 

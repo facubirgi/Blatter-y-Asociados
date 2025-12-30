@@ -1,8 +1,8 @@
 import {
-    ConflictException,
-    Injectable,
-    UnauthorizedException,
-    NotFoundException,
+  ConflictException,
+  Injectable,
+  UnauthorizedException,
+  NotFoundException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -15,118 +15,118 @@ import { UpdateProfileDto } from './dto/update-profile.dto';
 
 @Injectable()
 export class AuthService {
-    constructor(
-        @InjectRepository(User)
-        private readonly userRepository: Repository<User>,
-        private readonly jwtService: JwtService,
-    ) { }
+  constructor(
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
+    private readonly jwtService: JwtService,
+  ) {}
 
-    async register(registerDto: RegisterDto) {
-        const { email, password, nombre } = registerDto;
+  async register(registerDto: RegisterDto) {
+    const { email, password, nombre } = registerDto;
 
-        // Verificar si el usuario ya existe
-        const existingUser = await this.userRepository.findOne({
-            where: { email },
-        });
+    // Verificar si el usuario ya existe
+    const existingUser = await this.userRepository.findOne({
+      where: { email },
+    });
 
-        if (existingUser) {
-            throw new ConflictException('El email ya está registrado');
-        }
-
-        // Hash de la contraseña
-        const hashedPassword = await bcrypt.hash(password, 10);
-
-        // Crear el usuario
-        const user = this.userRepository.create({
-            email,
-            password: hashedPassword,
-            nombre,
-        });
-
-        await this.userRepository.save(user);
-
-        // Generar token
-        const token = this.generateToken(user);
-
-        // Remover password de la respuesta
-        const { password: _, ...userWithoutPassword } = user;
-
-        return {
-            user: userWithoutPassword,
-            token,
-        };
+    if (existingUser) {
+      throw new ConflictException('El email ya está registrado');
     }
 
-    async login(loginDto: LoginDto) {
-        const { email, password } = loginDto;
+    // Hash de la contraseña
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-        // Buscar usuario por email
-        const user = await this.userRepository.findOne({
-            where: { email, activo: true },
-        });
+    // Crear el usuario
+    const user = this.userRepository.create({
+      email,
+      password: hashedPassword,
+      nombre,
+    });
 
-        if (!user) {
-            throw new UnauthorizedException('Credenciales inválidas');
-        }
+    await this.userRepository.save(user);
 
-        // Verificar contraseña
-        const isPasswordValid = await bcrypt.compare(password, user.password);
+    // Generar token
+    const token = this.generateToken(user);
 
-        if (!isPasswordValid) {
-            throw new UnauthorizedException('Credenciales inválidas');
-        }
+    // Remover password de la respuesta
+    const { password: _, ...userWithoutPassword } = user;
 
-        // Generar token
-        const token = this.generateToken(user);
+    return {
+      user: userWithoutPassword,
+      token,
+    };
+  }
 
-        // Remover password de la respuesta
-        const { password: _, ...userWithoutPassword } = user;
+  async login(loginDto: LoginDto) {
+    const { email, password } = loginDto;
 
-        return {
-            user: userWithoutPassword,
-            token,
-        };
+    // Buscar usuario por email
+    const user = await this.userRepository.findOne({
+      where: { email, activo: true },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('Credenciales inválidas');
     }
 
-    async getProfile(userId: string) {
-        const user = await this.userRepository.findOne({
-            where: { id: userId },
-        });
+    // Verificar contraseña
+    const isPasswordValid = await bcrypt.compare(password, user.password);
 
-        if (!user) {
-            throw new UnauthorizedException('Usuario no encontrado');
-        }
-
-        const { password: _, ...userWithoutPassword } = user;
-        return userWithoutPassword;
+    if (!isPasswordValid) {
+      throw new UnauthorizedException('Credenciales inválidas');
     }
 
-    async updateProfile(userId: string, updateProfileDto: UpdateProfileDto) {
-        const user = await this.userRepository.findOne({
-            where: { id: userId },
-        });
+    // Generar token
+    const token = this.generateToken(user);
 
-        if (!user) {
-            throw new NotFoundException('Usuario no encontrado');
-        }
+    // Remover password de la respuesta
+    const { password: _, ...userWithoutPassword } = user;
 
-        // Actualizar campos si están presentes
-        if (updateProfileDto.nombre !== undefined) {
-            user.nombre = updateProfileDto.nombre;
-        }
+    return {
+      user: userWithoutPassword,
+      token,
+    };
+  }
 
-        if (updateProfileDto.fotoPerfil !== undefined) {
-            user.fotoPerfil = updateProfileDto.fotoPerfil;
-        }
+  async getProfile(userId: string) {
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+    });
 
-        await this.userRepository.save(user);
-
-        const { password: _, ...userWithoutPassword } = user;
-        return userWithoutPassword;
+    if (!user) {
+      throw new UnauthorizedException('Usuario no encontrado');
     }
 
-    private generateToken(user: User): string {
-        const payload = { id: user.id, email: user.email };
-        return this.jwtService.sign(payload);
+    const { password: _, ...userWithoutPassword } = user;
+    return userWithoutPassword;
+  }
+
+  async updateProfile(userId: string, updateProfileDto: UpdateProfileDto) {
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException('Usuario no encontrado');
     }
+
+    // Actualizar campos si están presentes
+    if (updateProfileDto.nombre !== undefined) {
+      user.nombre = updateProfileDto.nombre;
+    }
+
+    if (updateProfileDto.fotoPerfil !== undefined) {
+      user.fotoPerfil = updateProfileDto.fotoPerfil;
+    }
+
+    await this.userRepository.save(user);
+
+    const { password: _, ...userWithoutPassword } = user;
+    return userWithoutPassword;
+  }
+
+  private generateToken(user: User): string {
+    const payload = { id: user.id, email: user.email };
+    return this.jwtService.sign(payload);
+  }
 }

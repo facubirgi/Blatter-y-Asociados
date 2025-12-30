@@ -196,7 +196,11 @@ describe('ClientesService', () => {
         ...updateDto,
       });
 
-      const result = await service.update(mockCliente.id, updateDto, mockUserId);
+      const result = await service.update(
+        mockCliente.id,
+        updateDto,
+        mockUserId,
+      );
 
       expect(repository.save).toHaveBeenCalled();
       expect(result.nombre).toBe(updateDto.nombre);
@@ -231,7 +235,11 @@ describe('ClientesService', () => {
         cuit: '30-99999999-9',
       };
 
-      const otroCliente = { ...mockCliente, id: 'otro-cliente', cuit: '30-99999999-9' };
+      const otroCliente = {
+        ...mockCliente,
+        id: 'otro-cliente',
+        cuit: '30-99999999-9',
+      };
 
       mockRepository.findOne
         .mockResolvedValueOnce(mockCliente) // findOne en update
