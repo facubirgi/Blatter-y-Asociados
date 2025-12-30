@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Corregir Montos de Mensualidades</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        #resultado {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+            display: none;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .operacion-item {
+            padding: 8px;
+            margin: 5px 0;
+            background-color: #f8f9fa;
+            border-left: 3px solid #4CAF50;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Corregir Montos de Mensualidades</h1>
+        <p>Este script corregirá las operaciones de mensualidad que tienen monto $0 y deberían tener el monto del cliente.</p>
+        
+        <div style="margin: 20px 0;">
+            <label for="token"><strong>Token de autenticación:</strong></label>
+            <input type="password" id="token" placeholder="Ingresa tu token JWT" style="width: 100%; padding: 8px; margin-top: 5px;">
+            <small style="color: #666;">Puedes obtener tu token desde el localStorage de tu navegador (key: 'token')</small>
+        </div>
+
+        <button id="btnCorregir" onclick="corregirMontos()">Corregir Montos</button>
+        
+        <div id="resultado"></div>
+    </div>
+
+    <script>
+        // Intentar obtener el token del localStorage si está disponible
+        window.onload = function() {
+            const token = localStorage.getItem('token');
+            if (token) {
+                document.getElementById('token').value = token;
+            }
+        };
+
+        async function corregirMontos() {
+            const token = document.getElementById('token').value;
+            if (!token) {
+                mostrarResultado('Por favor, ingresa tu token de autenticación', 'error');
+                return;
+            }
+
+            const btn = document.getElementById('btnCorregir');
+            const resultado = document.getElementById('resultado');
+            
+            btn.disabled = true;
+            btn.textContent = 'Procesando...';
+            resultado.style.display = 'none';
+
+            try {
+                const response = await fetch('http://localhost:3001/api/operaciones/fix-montos-mensualidades', {
+                    method: 'PATCH',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    let html = `<h3>✅ ${data.mensaje}</h3>`;
+                    html += `<p><strong>Operaciones actualizadas:</strong> ${data.actualizadas}</p>`;
+                    
+                    if (data.operaciones && data.operaciones.length > 0) {
+                        html += '<h4>Detalles:</h4>';
+                        data.operaciones.forEach(op => {
+                            html += `
+                                <div class="operacion-item">
+                                    <strong>${op.cliente}</strong><br>
+                                    Monto anterior: $${op.montoAnterior} → Monto nuevo: $${op.montoNuevo}
+                                </div>
+                            `;
+                        });
+                    }
+                    
+                    mostrarResultado(html, 'success');
+                } else {
+                    mostrarResultado(`❌ Error: ${data.message || 'Error desconocido'}`, 'error');
+                }
+            } catch (error) {
+                mostrarResultado(`❌ Error de conexión: ${error.message}`, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Corregir Montos';
+            }
+        }
+
+        function mostrarResultado(mensaje, tipo) {
+            const resultado = document.getElementById('resultado');
+            resultado.innerHTML = mensaje;
+            resultado.className = tipo;
+            resultado.style.display = 'block';
+        }
+    </script>
+</body>
+</html>

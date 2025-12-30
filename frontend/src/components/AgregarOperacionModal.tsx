@@ -10,8 +10,7 @@ interface AgregarOperacionModalProps {
 
 export interface OperacionFormData {
   tipo: TipoOperacion;
-  ingresosBrutos: number;
-  honorarios: number;
+  monto: number;
   fechaInicio: string;
   clienteId: string;
   estado: EstadoOperacion;
@@ -21,8 +20,7 @@ export default function AgregarOperacionModal({ isOpen, onClose, onSubmit }: Agr
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [formData, setFormData] = useState<OperacionFormData>({
     tipo: TipoOperacion.DECLARACION_IMPUESTOS,
-    ingresosBrutos: 0,
-    honorarios: 0,
+    monto: 0,
     fechaInicio: '',
     clienteId: '',
     estado: EstadoOperacion.PENDIENTE,
@@ -48,10 +46,25 @@ export default function AgregarOperacionModal({ isOpen, onClose, onSubmit }: Agr
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setFormData({
+    const newFormData = {
       ...formData,
-      [name]: (name === 'ingresosBrutos' || name === 'honorarios') ? parseFloat(value) || 0 : value,
-    });
+      [name]: name === 'monto' ? parseFloat(value) || 0 : value,
+    };
+
+    // Si cambia el cliente o el tipo, autocompletar el monto si es cliente fijo con contabilidad mensual
+    if (name === 'clienteId' || name === 'tipo') {
+      const clienteId = name === 'clienteId' ? value : formData.clienteId;
+      const tipo = name === 'tipo' ? value : formData.tipo;
+      
+      if (clienteId && tipo === TipoOperacion.CONTABILIDAD_MENSUAL) {
+        const cliente = clientes.find(c => c.id === clienteId);
+        if (cliente?.esClienteFijo && cliente.montoMensualidad > 0) {
+          newFormData.monto = cliente.montoMensualidad;
+        }
+      }
+    }
+
+    setFormData(newFormData);
   };
 
   const handleSubmit = async (e: FormEvent) => {
@@ -64,8 +77,7 @@ export default function AgregarOperacionModal({ isOpen, onClose, onSubmit }: Agr
       // Reset form
       setFormData({
         tipo: TipoOperacion.DECLARACION_IMPUESTOS,
-        ingresosBrutos: 0,
-        honorarios: 0,
+        monto: 0,
         fechaInicio: '',
         clienteId: '',
         estado: EstadoOperacion.PENDIENTE,
@@ -123,6 +135,7 @@ export default function AgregarOperacionModal({ isOpen, onClose, onSubmit }: Agr
                 {clientes.map((cliente) => (
                   <option key={cliente.id} value={cliente.id}>
                     {cliente.nombre}
+                    {cliente.esClienteFijo ? ` 💼 ($${cliente.montoMensualidad.toLocaleString('es-AR')}/mes)` : ''}
                   </option>
                 ))}
               </select>
@@ -151,43 +164,35 @@ export default function AgregarOperacionModal({ isOpen, onClose, onSubmit }: Agr
             </div>
           </div>
 
-          {/* Fila 2: Honorarios */}
-          <div>
-            {/* Honorarios */}
+          {/* Fila 2: Monto, Fecha y Estado */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {/* Monto */}
             <div>
-              <label htmlFor="honorarios" className="block text-sm font-medium text-gray-700 mb-1">
-                Honorarios
+              <label htmlFor="monto" className="block text-sm font-medium text-gray-700 mb-1">
+                Monto
+                {(() => {
+                  const cliente = clientes.find(c => c.id === formData.clienteId);
+                  return cliente?.esClienteFijo && formData.tipo === TipoOperacion.CONTABILIDAD_MENSUAL && (
+                    <span className="ml-1 text-xs text-purple-600 font-normal">
+                      (Mensualidad del cliente)
+                    </span>
+                  );
+                })()}
               </label>
               <input
                 type="number"
-                id="honorarios"
-                name="honorarios"
+                id="monto"
+                name="monto"
                 required
                 min="0"
                 step="0.01"
-                value={formData.honorarios}
+                value={formData.monto}
                 onChange={handleChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-600 focus:border-transparent"
                 placeholder="0.00"
               />
             </div>
-          </div>
 
-          {/* Monto Total (Calculado) - Compacto */}
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 flex items-center justify-between">
-            <div>
-              <p className="text-xs text-gray-500">Monto Total</p>
-              <p className="text-lg font-semibold text-gray-900">
-                ${formData.honorarios.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </p>
-            </div>
-            <p className="text-xs text-gray-500">
-              = Honorarios
-            </p>
-          </div>
-
-          {/* Fila 3: Fecha y Estado */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {/* Fecha de Inicio */}
             <div>
               <label htmlFor="fechaInicio" className="block text-sm font-medium text-gray-700 mb-1">

@@ -62,6 +62,16 @@ export default function ReportesDiarios() {
       }),
     }));
 
+    // Agregar fila de total
+    data.push({
+      Cliente: 'TOTAL',
+      'Fecha Completado': '',
+      'Monto Pagado': totalMes.toLocaleString('es-AR', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }),
+    });
+
     exportToCSV(data, {
       filename,
       headers: ['Cliente', 'Fecha Completado', 'Monto Pagado'],
@@ -72,7 +82,7 @@ export default function ReportesDiarios() {
 
   // Calcular totales
   const totalMes = operacionesPagadas.reduce((sum, op) => sum + (op.montoTotal ?? 0), 0);
-  const totalAnual = estadisticasAnuales?.meses.reduce((sum, mes) => sum + (mes.totalHonorarios ?? 0), 0) || 0;
+  const totalAnual = estadisticasAnuales?.meses.reduce((sum, mes) => sum + (mes.totalMonto ?? 0), 0) || 0;
 
   // Renderizar skeleton
   function SkeletonRow() {
@@ -245,7 +255,7 @@ export default function ReportesDiarios() {
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
                   <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Mes</th>
-                  <th className="px-6 py-3 text-right text-sm font-semibold text-gray-700">Total Honorarios</th>
+                  <th className="px-6 py-3 text-right text-sm font-semibold text-gray-700">Total</th>
                 </tr>
               </thead>
               <tbody>
@@ -253,7 +263,7 @@ export default function ReportesDiarios() {
                   <tr key={mesData.mes} className="border-t border-gray-200 hover:bg-gray-50">
                     <td className="px-6 py-4 text-sm text-gray-900">{mesData.nombreMes}</td>
                     <td className="px-6 py-4 text-sm text-right text-gray-900 font-semibold">
-                      ${mesData.totalHonorarios.toLocaleString('es-AR', {
+                      ${mesData.totalMonto.toLocaleString('es-AR', {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2,
                       })}

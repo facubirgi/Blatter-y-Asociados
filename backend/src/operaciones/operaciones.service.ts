@@ -133,17 +133,16 @@ export class OperacionesService {
 
     // Si se está actualizando el monto pagado, validar y actualizar estado automáticamente
     if (updateOperacionDto.montoPagado !== undefined) {
-      // Calcular montoTotal considerando posibles actualizaciones de honorarios
-      const honorarios = updateOperacionDto.honorarios !== undefined
-        ? Number(updateOperacionDto.honorarios)
-        : Number(operacion.honorarios);
-      const montoTotal = honorarios;
+      // Calcular monto considerando posibles actualizaciones
+      const monto = updateOperacionDto.monto !== undefined
+        ? Number(updateOperacionDto.monto)
+        : Number(operacion.monto);
       const nuevoMontoPagado = Number(updateOperacionDto.montoPagado);
 
       // Validar que el monto pagado no exceda el monto total
-      if (nuevoMontoPagado > montoTotal) {
+      if (nuevoMontoPagado > monto) {
         throw new BadRequestException(
-          `El monto pagado no puede exceder el monto total. Monto total: ${montoTotal}`,
+          `El monto pagado no puede exceder el monto total. Monto total: ${monto}`,
         );
       }
 
@@ -151,10 +150,10 @@ export class OperacionesService {
       if (nuevoMontoPagado === 0) {
         updateOperacionDto.estado = EstadoOperacion.PENDIENTE;
         delete updateOperacionDto.fechaCompletado;
-      } else if (nuevoMontoPagado > 0 && nuevoMontoPagado < montoTotal) {
+      } else if (nuevoMontoPagado > 0 && nuevoMontoPagado < monto) {
         updateOperacionDto.estado = EstadoOperacion.EN_PROCESO;
         delete updateOperacionDto.fechaCompletado;
-      } else if (nuevoMontoPagado >= montoTotal) {
+      } else if (nuevoMontoPagado >= monto) {
         updateOperacionDto.estado = EstadoOperacion.COMPLETADO;
         if (!updateOperacionDto.fechaCompletado && !operacion.fechaCompletado) {
           updateOperacionDto.fechaCompletado = new Date().toISOString().split('T')[0];
@@ -208,7 +207,7 @@ export class OperacionesService {
         this.logger.log(`  - fechaCompletado: ${operacion.fechaCompletado}`);
       }
       // Marcar como totalmente pagado
-      operacion.montoPagado = operacion.montoTotal;
+      operacion.montoPagado = operacion.monto;
       this.logger.log(`  - montoPagado actualizado a: ${operacion.montoPagado}`);
     }
 
@@ -223,9 +222,9 @@ export class OperacionesService {
 
     // Validar que el pago no exceda el monto total
     const nuevoMontoPagado = Number(operacion.montoPagado) + Number(montoPago);
-    if (nuevoMontoPagado > Number(operacion.montoTotal)) {
+    if (nuevoMontoPagado > Number(operacion.monto)) {
       throw new BadRequestException(
-        `El pago excede el monto total. Monto restante: ${Number(operacion.montoTotal) - Number(operacion.montoPagado)}`,
+        `El pago excede el monto total. Monto restante: ${Number(operacion.monto) - Number(operacion.montoPagado)}`,
       );
     }
 
@@ -233,7 +232,7 @@ export class OperacionesService {
     operacion.montoPagado = nuevoMontoPagado;
 
     // Si se pagó el total, marcar como completado
-    if (nuevoMontoPagado >= Number(operacion.montoTotal)) {
+    if (nuevoMontoPagado >= Number(operacion.monto)) {
       operacion.estado = EstadoOperacion.COMPLETADO;
       if (!operacion.fechaCompletado) {
         operacion.fechaCompletado = new Date();
@@ -295,18 +294,18 @@ export class OperacionesService {
         }),
       ]);
 
-    // Calcular montos totales y honorarios por estado
-    const [montoTotal, montoPendiente, montoEnProceso, montoCompletado, totalHonorarios] =
+    // Calcular montos totales por estado
+    const [montoTotal, montoPendiente, montoEnProceso, montoCompletado] =
       await Promise.all([
         this.operacionRepository
           .createQueryBuilder('operacion')
-          .select('SUM(operacion.montoTotal)', 'total')
+          .select('SUM(operacion.monto)', 'total')
           .where('operacion.userId = :userId', { userId })
           .getRawOne()
           .then((result) => parseFloat(result?.total || 0)),
         this.operacionRepository
           .createQueryBuilder('operacion')
-          .select('SUM(operacion.montoTotal)', 'total')
+          .select('SUM(operacion.monto)', 'total')
           .where('operacion.userId = :userId', { userId })
           .andWhere('operacion.estado = :estado', {
             estado: EstadoOperacion.PENDIENTE,
@@ -315,7 +314,7 @@ export class OperacionesService {
           .then((result) => parseFloat(result?.total || 0)),
         this.operacionRepository
           .createQueryBuilder('operacion')
-          .select('SUM(operacion.montoTotal)', 'total')
+          .select('SUM(operacion.monto)', 'total')
           .where('operacion.userId = :userId', { userId })
           .andWhere('operacion.estado = :estado', {
             estado: EstadoOperacion.EN_PROCESO,
@@ -324,17 +323,11 @@ export class OperacionesService {
           .then((result) => parseFloat(result?.total || 0)),
         this.operacionRepository
           .createQueryBuilder('operacion')
-          .select('SUM(operacion.montoTotal)', 'total')
+          .select('SUM(operacion.monto)', 'total')
           .where('operacion.userId = :userId', { userId })
           .andWhere('operacion.estado = :estado', {
             estado: EstadoOperacion.COMPLETADO,
           })
-          .getRawOne()
-          .then((result) => parseFloat(result?.total || 0)),
-        this.operacionRepository
-          .createQueryBuilder('operacion')
-          .select('SUM(operacion.honorarios)', 'total')
-          .where('operacion.userId = :userId', { userId })
           .getRawOne()
           .then((result) => parseFloat(result?.total || 0)),
       ]);
@@ -349,7 +342,6 @@ export class OperacionesService {
       montoPendiente,
       montoEnProceso,
       montoCompletado,
-      totalHonorarios,
     };
   }
 
@@ -396,7 +388,7 @@ export class OperacionesService {
     const operaciones = await this.operacionRepository
       .createQueryBuilder('operacion')
       .select('operacion.id', 'id')
-      .addSelect('operacion.monto_total', 'montoTotal')
+      .addSelect('operacion.monto', 'montoTotal')
       .addSelect('operacion.fecha_completado', 'fechaCompletado')
       .addSelect('cliente.nombre', 'clienteNombre')
       .innerJoin('operacion.cliente', 'cliente')
@@ -408,6 +400,7 @@ export class OperacionesService {
       .andWhere('operacion.fecha_completado >= :primerDia', { primerDia })
       .andWhere('operacion.fecha_completado <= :ultimoDiaMes', { ultimoDiaMes })
       .orderBy('operacion.fecha_completado', 'DESC')
+      .addOrderBy('operacion.created_at', 'DESC')
       .getRawMany();
 
     // Mapear a DTO
@@ -492,7 +485,7 @@ export class OperacionesService {
 
         const resultado = await this.operacionRepository
           .createQueryBuilder('operacion')
-          .select('SUM(operacion.honorarios)', 'totalHonorarios')
+          .select('SUM(operacion.monto)', 'totalMonto')
           .where('operacion.userId = :userId', { userId })
           .andWhere('operacion.estado = :estado', {
             estado: EstadoOperacion.COMPLETADO,
@@ -507,7 +500,7 @@ export class OperacionesService {
         return {
           mes,
           nombreMes: mesesNombres[mesIndex],
-          totalHonorarios: parseFloat(resultado?.totalHonorarios || 0),
+          totalMonto: parseFloat(resultado?.totalMonto || 0),
         };
       }),
     );
@@ -615,12 +608,10 @@ export class OperacionesService {
 
       const operaciones = clientesFijos.map((cliente) => {
         // Convertir DECIMAL a número (TypeORM devuelve DECIMALs como strings)
-        const ingresosBrutos = 0;
-        const honorarios = Number(cliente.montoMensualidad) || 0;
-        const montoTotal = honorarios;
+        const monto = Number(cliente.montoMensualidad) || 0;
 
         // Validar que el monto es un número válido
-        if (isNaN(honorarios) || honorarios < 0) {
+        if (isNaN(monto) || monto < 0) {
           this.logger.warn(
             `Cliente ${cliente.nombre} (${cliente.id}) tiene un monto de mensualidad inválido: ${cliente.montoMensualidad}`,
           );
@@ -629,9 +620,7 @@ export class OperacionesService {
         return this.operacionRepository.create({
           tipo: TipoOperacion.CONTABILIDAD_MENSUAL,
           descripcion: `Mensualidad ${diaActual}/${mesActual}/${anioActual}`,
-          ingresosBrutos,
-          honorarios,
-          montoTotal, // Calculado manualmente porque bulk insert NO ejecuta @BeforeInsert
+          monto,
           esMensualidad: true,
           fechaInicio,
           fechaLimite,
@@ -684,6 +673,64 @@ export class OperacionesService {
       );
     } finally {
       await queryRunner.release();
+    }
+  }
+
+  /**
+   * Corrige los montos de las operaciones de mensualidad que tienen monto 0
+   * y deberían tener el monto de mensualidad del cliente
+   */
+  async fixMontosMensualidades(userId: string) {
+    try {
+      // Buscar operaciones de mensualidad con monto 0
+      const operacionesConMontoInvalido = await this.operacionRepository
+        .createQueryBuilder('op')
+        .leftJoinAndSelect('op.cliente', 'cliente')
+        .where('op.userId = :userId', { userId })
+        .andWhere('op.esMensualidad = :esMensualidad', { esMensualidad: true })
+        .andWhere('op.monto = :monto', { monto: 0 })
+        .andWhere('cliente.montoMensualidad > :montoMin', { montoMin: 0 })
+        .getMany();
+
+      if (operacionesConMontoInvalido.length === 0) {
+        return {
+          actualizadas: 0,
+          mensaje: 'No hay operaciones de mensualidad con monto 0 para corregir',
+        };
+      }
+
+      // Actualizar cada operación
+      const operacionesActualizadas: Array<{
+        id: string;
+        cliente: string;
+        montoAnterior: number;
+        montoNuevo: number;
+      }> = [];
+      for (const operacion of operacionesConMontoInvalido) {
+        operacion.monto = Number(operacion.cliente.montoMensualidad);
+        await this.operacionRepository.save(operacion);
+        operacionesActualizadas.push({
+          id: operacion.id,
+          cliente: operacion.cliente.nombre,
+          montoAnterior: 0,
+          montoNuevo: operacion.monto,
+        });
+      }
+
+      this.logger.log(
+        `Se corrigieron ${operacionesActualizadas.length} operaciones de mensualidad para el usuario ${userId}`,
+      );
+
+      return {
+        actualizadas: operacionesActualizadas.length,
+        mensaje: `Se actualizaron ${operacionesActualizadas.length} operaciones de mensualidad`,
+        operaciones: operacionesActualizadas,
+      };
+    } catch (error) {
+      this.logger.error(
+        `Error al corregir montos de mensualidades: ${error.message}`,
+      );
+      throw error;
     }
   }
 }

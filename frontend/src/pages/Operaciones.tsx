@@ -93,12 +93,12 @@ export default function Operaciones() {
       // Calcular monto total de operaciones pendientes
       const montoPendiente = operacionesResponse.data
         .filter(op => op.estado === EstadoOperacion.PENDIENTE)
-        .reduce((total, op) => total + op.montoTotal, 0);
+        .reduce((total, op) => total + op.monto, 0);
 
       // Calcular monto total de operaciones en proceso
       const montoEnProceso = operacionesResponse.data
         .filter(op => op.estado === EstadoOperacion.EN_PROCESO)
-        .reduce((total, op) => total + op.montoTotal, 0);
+        .reduce((total, op) => total + op.monto, 0);
 
       setOperaciones(operacionesOrdenadas);
       setTotalPages(operacionesResponse.meta.totalPages);
@@ -384,20 +384,12 @@ export default function Operaciones() {
                       <p className="text-sm text-gray-900">{operacionService.getTipoOperacionLabel(op.tipo)}</p>
                     </div>
 
-                    {/* Montos */}
-                    <div className="mb-3 grid grid-cols-2 gap-3">
-                      <div>
-                        <p className="text-xs text-gray-500 mb-1">Honorarios</p>
-                        <p className="text-lg font-semibold text-green-600">
-                          ${op.honorarios.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500 mb-1">Monto Total</p>
-                        <p className="text-lg font-semibold text-gray-900">
-                          ${op.montoTotal.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </p>
-                      </div>
+                    {/* Monto */}
+                    <div className="mb-3">
+                      <p className="text-xs text-gray-500 mb-1">Monto</p>
+                      <p className="text-lg font-semibold text-gray-900">
+                        ${op.monto.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </p>
                     </div>
 
                     {/* Estado - Solo lectura */}
@@ -416,10 +408,9 @@ export default function Operaciones() {
                       </span>
                     </div>
 
-                    {/* Fechas */}
-                    <div className="flex justify-between text-xs text-gray-500">
+                    {/* Fecha de creación */}
+                    <div className="text-xs text-gray-500">
                       <span>Inicio: {new Date(op.fechaInicio).toLocaleDateString('es-ES')}</span>
-                      {op.fechaLimite && <span>Límite: {new Date(op.fechaLimite).toLocaleDateString('es-ES')}</span>}
                     </div>
                   </div>
                 ))}

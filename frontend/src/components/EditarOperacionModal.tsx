@@ -13,8 +13,7 @@ interface EditarOperacionModalProps {
 
 export interface OperacionUpdateData {
   tipo: TipoOperacion;
-  ingresosBrutos: number;
-  honorarios: number;
+  monto: number;
   fechaInicio: string;
   clienteId: string;
 }
@@ -23,8 +22,7 @@ export default function EditarOperacionModal({ isOpen, onClose, onSubmit, operac
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [formData, setFormData] = useState<OperacionUpdateData>({
     tipo: TipoOperacion.DECLARACION_IMPUESTOS,
-    ingresosBrutos: 0,
-    honorarios: 0,
+    monto: 0,
     fechaInicio: '',
     clienteId: '',
   });
@@ -44,8 +42,7 @@ export default function EditarOperacionModal({ isOpen, onClose, onSubmit, operac
     if (operacion && isOpen) {
       setFormData({
         tipo: operacion.tipo,
-        ingresosBrutos: operacion.ingresosBrutos,
-        honorarios: operacion.honorarios,
+        monto: operacion.monto,
         fechaInicio: operacion.fechaInicio,
         clienteId: operacion.clienteId,
       });
@@ -65,7 +62,7 @@ export default function EditarOperacionModal({ isOpen, onClose, onSubmit, operac
     const { name, value } = e.target;
     setFormData({
       ...formData,
-      [name]: (name === 'ingresosBrutos' || name === 'honorarios') ? parseFloat(value) || 0 : value,
+      [name]: name === 'monto' ? parseFloat(value) || 0 : value,
     });
   };
 
@@ -216,77 +213,66 @@ export default function EditarOperacionModal({ isOpen, onClose, onSubmit, operac
             </div>
           </div>
 
-          {/* Fila 2: Honorarios */}
-          <div>
-            {/* Honorarios */}
+          {/* Fila 2: Monto, Fecha y Estado */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {/* Monto */}
             <div>
-              <label htmlFor="honorarios" className="block text-sm font-medium text-gray-700 mb-1">
-                Honorarios
+              <label htmlFor="monto" className="block text-sm font-medium text-gray-700 mb-1">
+                Monto
               </label>
               <input
                 type="number"
-                id="honorarios"
-                name="honorarios"
+                id="monto"
+                name="monto"
                 required
                 min="0"
                 step="0.01"
-                value={formData.honorarios}
+                value={formData.monto}
                 onChange={handleChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-600 focus:border-transparent"
                 placeholder="0.00"
               />
             </div>
-          </div>
 
-          {/* Fila compacta: Monto Total y Estado */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {/* Monto Total (Calculado) - Compacto */}
-            <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
-              <p className="text-xs text-gray-500 mb-1">Monto Total</p>
-              <p className="text-lg font-semibold text-gray-900">
-                ${formData.honorarios.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </p>
-              <p className="text-xs text-gray-500 mt-0.5">= Honorarios</p>
+            {/* Fecha de Inicio */}
+            <div>
+              <label htmlFor="fechaInicio" className="block text-sm font-medium text-gray-700 mb-1">
+                Fecha de Inicio
+              </label>
+              <input
+                type="date"
+                id="fechaInicio"
+                name="fechaInicio"
+                required
+                value={formData.fechaInicio}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-600 focus:border-transparent"
+              />
             </div>
 
-            {/* Estado Actual - Compacto */}
+            {/* Estado Actual - Info */}
             {operacion && (
-              <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
-                <p className="text-xs text-gray-500 mb-1">Estado Actual</p>
-                <span
-                  className={`inline-block px-3 py-1 rounded-md text-sm font-medium ${
-                    operacion.estado === EstadoOperacion.PENDIENTE
-                      ? 'bg-orange-100 text-orange-700'
+              <div className="flex flex-col">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Estado Actual</label>
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-2.5 flex items-center justify-center">
+                  <span
+                    className={`inline-block px-3 py-1 rounded-md text-sm font-medium ${
+                      operacion.estado === EstadoOperacion.PENDIENTE
+                        ? 'bg-orange-100 text-orange-700'
+                        : operacion.estado === EstadoOperacion.EN_PROCESO
+                        ? 'bg-blue-100 text-blue-700'
+                        : 'bg-green-100 text-green-700'
+                    }`}
+                  >
+                    {operacion.estado === EstadoOperacion.PENDIENTE
+                      ? 'Pendiente'
                       : operacion.estado === EstadoOperacion.EN_PROCESO
-                      ? 'bg-blue-100 text-blue-700'
-                      : 'bg-green-100 text-green-700'
-                  }`}
-                >
-                  {operacion.estado === EstadoOperacion.PENDIENTE
-                    ? 'Pendiente'
-                    : operacion.estado === EstadoOperacion.EN_PROCESO
-                    ? 'En Proceso'
-                    : 'Completado'}
-                </span>
-                <p className="mt-1 text-xs text-gray-500">Actualizado automáticamente</p>
+                      ? 'En Proceso'
+                      : 'Completado'}
+                  </span>
+                </div>
               </div>
             )}
-          </div>
-
-          {/* Fecha de Inicio */}
-          <div>
-            <label htmlFor="fechaInicio" className="block text-sm font-medium text-gray-700 mb-1">
-              Fecha de Inicio
-            </label>
-            <input
-              type="date"
-              id="fechaInicio"
-              name="fechaInicio"
-              required
-              value={formData.fechaInicio}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-600 focus:border-transparent"
-            />
           </div>
 
           {/* Footer Buttons */}

@@ -23,9 +23,7 @@ export interface Operacion {
   id: string;
   tipo: TipoOperacion;
   descripcion: string | null;
-  montoTotal: number;
-  ingresosBrutos: number;
-  honorarios: number;
+  monto: number;
   montoPagado: number;
   esMensualidad: boolean;
   estado: EstadoOperacion;
@@ -42,8 +40,7 @@ export interface Operacion {
 
 export interface CreateOperacionDto {
   tipo: TipoOperacion;
-  ingresosBrutos: number;
-  honorarios: number;
+  monto: number;
   fechaInicio: string;
   clienteId: string;
   estado: EstadoOperacion;
@@ -55,8 +52,7 @@ export interface CreateOperacionDto {
 export interface UpdateOperacionDto {
   tipo?: TipoOperacion;
   descripcion?: string;
-  ingresosBrutos?: number;
-  honorarios?: number;
+  monto?: number;
   montoPagado?: number;
   fechaLimite?: string;
   fechaInicio?: string;
@@ -74,7 +70,6 @@ export interface OperacionStats {
   montoPendiente: number;
   montoEnProceso: number;
   montoCompletado: number;
-  totalHonorarios: number;
 }
 
 export interface GenerarMensualesDto {
@@ -112,7 +107,7 @@ export interface ReporteOperacionDto {
 export interface MesEstadisticaDto {
   mes: number;
   nombreMes: string;
-  totalHonorarios: number;
+  totalMonto: number;
 }
 
 export interface EstadisticasAnualesDto {

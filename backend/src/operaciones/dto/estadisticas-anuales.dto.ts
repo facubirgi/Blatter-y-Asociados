@@ -7,8 +7,8 @@ export class MesEstadisticaDto {
   @ApiProperty({ description: 'Nombre del mes' })
   nombreMes: string;
 
-  @ApiProperty({ description: 'Total de honorarios en el mes' })
-  totalHonorarios: number;
+  @ApiProperty({ description: 'Total de montos en el mes' })
+  totalMonto: number;
 }
 
 export class EstadisticasAnualesDto {

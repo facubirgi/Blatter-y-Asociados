@@ -9,12 +9,15 @@ import { Repository } from 'typeorm';
 import { CreateClienteDto } from './dto/create-cliente.dto';
 import { UpdateClienteDto } from './dto/update-cliente.dto';
 import { Cliente } from './entities/clientes.entity';
+import { Operacion } from '../operaciones/entities/operacion.entity';
 
 @Injectable()
 export class ClientesService {
   constructor(
     @InjectRepository(Cliente)
     private readonly clienteRepository: Repository<Cliente>,
+    @InjectRepository(Operacion)
+    private readonly operacionRepository: Repository<Operacion>,
   ) {}
 
   async create(createClienteDto: CreateClienteDto, userId: string) {
@@ -102,6 +105,18 @@ export class ClientesService {
 
   async remove(id: string, userId: string) {
     const cliente = await this.findOne(id, userId);
+    
+    // Verificar si el cliente tiene operaciones asociadas
+    const operacionesCount = await this.operacionRepository.count({
+      where: { clienteId: id },
+    });
+
+    if (operacionesCount > 0) {
+      throw new ConflictException(
+        `No se puede eliminar el cliente porque tiene ${operacionesCount} operación(es) asociada(s). Primero debes eliminar o reasignar las operaciones.`,
+      );
+    }
+
     await this.clienteRepository.remove(cliente);
     return { message: 'Cliente eliminado correctamente' };
   }

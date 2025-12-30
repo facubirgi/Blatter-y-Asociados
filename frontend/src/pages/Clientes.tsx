@@ -88,9 +88,16 @@ export default function Clientes() {
       await clienteService.delete(id);
       await loadClientes();
       toast.success('Cliente eliminado exitosamente');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error al eliminar cliente:', error);
-      toast.error('No se pudo eliminar el cliente');
+      // Mostrar el mensaje de error del servidor si está disponible
+      const errorMessage = error?.response?.data?.message || 'No se pudo eliminar el cliente';
+      toast.error(errorMessage, {
+        duration: 5000,
+        style: {
+          maxWidth: '500px',
+        },
+      });
     }
   };
 

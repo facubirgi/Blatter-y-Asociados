@@ -10,7 +10,8 @@
       "Bash(docker-compose exec:*)",
       "Bash(docker-compose ps:*)",
       "Bash(cat:*)",
-      "Bash(dir:*)"
+      "Bash(dir:*)",
+      "Bash(PGPASSWORD=crm_password_2024 psql:*)"
     ]
   }
 }

@@ -231,6 +231,19 @@ export class OperacionesController {
     );
   }
 
+  @Patch('fix-montos-mensualidades')
+  @ApiOperation({
+    summary: 'Corregir montos de operaciones de mensualidad con monto 0',
+    description: 'Este endpoint actualiza las operaciones de mensualidad que tienen monto 0 y deberían tener el monto del cliente',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Operaciones actualizadas correctamente',
+  })
+  async fixMontosMensualidades(@GetUser() user: User) {
+    return this.operacionesService.fixMontosMensualidades(user.id);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Obtener una operación por ID' })
   @ApiResponse({ status: 200, description: 'Operación encontrada' })
