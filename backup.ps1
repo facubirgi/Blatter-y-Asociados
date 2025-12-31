@@ -45,15 +45,17 @@ if (!(Test-Path $BACKUP_FOLDER)) {
 }
 
 # Verificar que el contenedor de MySQL está corriendo
-$container = docker ps --filter "name=crm-mysql-prod" --format "{{.Names}}"
+$container = docker ps --filter "name=crm-mysql" --format "{{.Names}}" | Select-Object -First 1
 if (!$container) {
     Write-Error-Custom "El contenedor MySQL no está corriendo"
     exit 1
 }
 
+Write-Info "Usando contenedor: $container"
+
 # Crear backup
 Write-Info "Creando backup de la base de datos..."
-docker exec crm-mysql-prod mysqldump `
+docker exec $container mysqldump `
     --single-transaction `
     --routines `
     --triggers `

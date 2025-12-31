@@ -2,20 +2,21 @@ version: '3.8'
 
 services:
   # ====================================
-  # 🗄️ Base de Datos PostgreSQL
+  # 🗄️ Base de Datos MySQL
   # ====================================
-  postgres:
-    image: postgres:16
-    container_name: crm-postgres-dev
+  mysql:
+    image: mysql:8.0
+    container_name: crm-mysql-dev
     restart: always
     environment:
-      POSTGRES_DB: ${DB_DATABASE:-crm_contable}
-      POSTGRES_USER: ${DB_USERNAME:-crm_user}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-crm_password}
+      MYSQL_DATABASE: ${DB_DATABASE:-crm_contable}
+      MYSQL_USER: ${DB_USERNAME:-crm_user}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-crm_password}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root_password}
     ports:
-      - "${DB_PORT:-5432}:5432"
+      - "${DB_PORT:-3306}:3306"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - mysql_data:/var/lib/mysql
       - ./backups:/backups
     networks:
       - crm-network
@@ -24,7 +25,7 @@ services:
 # 📦 Volúmenes
 # ====================================
 volumes:
-  postgres_data:
+  mysql_data:
     driver: local
 
 # ====================================

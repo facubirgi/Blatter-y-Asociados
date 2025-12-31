@@ -56,14 +56,17 @@ log_info "Iniciando backup..."
 mkdir -p "${BACKUP_DIR}/${DATE_DIR}"
 
 # Verificar que el contenedor de MySQL está corriendo
-if ! docker ps | grep -q crm-mysql-prod; then
+CONTAINER=$(docker ps --filter "name=crm-mysql" --format "{{.Names}}" | head -1)
+if [ -z "$CONTAINER" ]; then
     log_error "El contenedor MySQL no está corriendo"
     exit 1
 fi
 
+log_info "Usando contenedor: ${CONTAINER}"
+
 # Crear backup
 log_info "Creando backup de la base de datos..."
-docker exec crm-mysql-prod mysqldump \
+docker exec "${CONTAINER}" mysqldump \
     --single-transaction \
     --routines \
     --triggers \

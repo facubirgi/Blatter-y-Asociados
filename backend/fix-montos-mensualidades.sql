@@ -18,10 +18,9 @@ ORDER BY o.created_at DESC;
 
 -- Actualizar los montos de las operaciones de mensualidad con monto 0
 UPDATE operaciones o
-SET monto = c.monto_mensualidad
-FROM clientes c
-WHERE o.cliente_id = c.id
-  AND o.es_mensualidad = true
+INNER JOIN clientes c ON o.cliente_id = c.id
+SET o.monto = c.monto_mensualidad
+WHERE o.es_mensualidad = true
   AND o.monto = 0
   AND c.monto_mensualidad > 0;
 

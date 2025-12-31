@@ -5,7 +5,7 @@
 --              montoTotal) a campo único (monto)
 -- ============================================================================
 
-BEGIN;
+START TRANSACTION;
 
 -- 1. Actualizar campo monto con valores de ingresosBrutos
 -- Esto preserva todos los datos existentes

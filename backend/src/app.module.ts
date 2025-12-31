@@ -39,19 +39,18 @@ import { HealthModule } from './health/health.module';
       },
     ]),
 
-    // Configuración de TypeORM con PostgreSQL
+    // Configuración de TypeORM con MySQL
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
-        type: 'postgres',
+        type: 'mysql',
         host: configService.get('DB_HOST'),
         port: configService.get<number>('DB_PORT'),
         username: configService.get('DB_USERNAME'),
         password: configService.get('DB_PASSWORD'),
         database: configService.get('DB_DATABASE'),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        ssl: configService.get('NODE_ENV') === 'production' ? { rejectUnauthorized: false } : false,
         synchronize: configService.get('NODE_ENV') !== 'production', // Solo en desarrollo
         logging: configService.get('NODE_ENV') === 'development',
       }),

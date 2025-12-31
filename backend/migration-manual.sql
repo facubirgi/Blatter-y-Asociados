@@ -1,16 +1,16 @@
 -- Migración manual para hacer nullable los campos descripcion y fecha_limite
--- Ejecuta este script en tu base de datos PostgreSQL
+-- Ejecuta este script en tu base de datos MySQL
 
 -- Hacer nullable el campo descripcion
 ALTER TABLE operaciones
-ALTER COLUMN descripcion DROP NOT NULL;
+MODIFY COLUMN descripcion TEXT NULL;
 
 -- Hacer nullable el campo fecha_limite
 ALTER TABLE operaciones
-ALTER COLUMN fecha_limite DROP NOT NULL;
+MODIFY COLUMN fecha_limite DATE NULL;
 
 -- Verificar los cambios
-SELECT column_name, is_nullable, data_type
+SELECT COLUMN_NAME, IS_NULLABLE, DATA_TYPE
 FROM information_schema.columns
 WHERE table_name = 'operaciones'
-AND column_name IN ('descripcion', 'fecha_limite');
+AND COLUMN_NAME IN ('descripcion', 'fecha_limite');

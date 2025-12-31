@@ -8,25 +8,26 @@ version: '3.8'
 
 services:
   # ====================================
-  # 🗄️ Base de Datos PostgreSQL
+  # 🗄️ Base de Datos MySQL
   # ====================================
-  postgres:
-    image: postgres:16
-    container_name: crm-postgres-prod
+  mysql:
+    image: mysql:8.0
+    container_name: crm-mysql-prod
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${DB_DATABASE}
-      POSTGRES_USER: ${DB_USERNAME}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - mysql_data:/var/lib/mysql
       - ./backups:/backups # Carpeta para backups
     ports:
-      - "5432:5432" # Solo para acceso externo si es necesario
+      - "3306:3306" # Solo para acceso externo si es necesario
     networks:
       - crm-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d ${DB_DATABASE}"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "${DB_USERNAME}", "-p${DB_PASSWORD}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -41,13 +42,13 @@ services:
     container_name: crm-backend-prod
     restart: unless-stopped
     depends_on:
-      postgres:
+      mysql:
         condition: service_healthy
     environment:
       NODE_ENV: production
       PORT: 3000
-      DB_HOST: postgres
-      DB_PORT: 5432
+      DB_HOST: mysql
+      DB_PORT: 3306
       DB_USERNAME: ${DB_USERNAME}
       DB_PASSWORD: ${DB_PASSWORD}
       DB_DATABASE: ${DB_DATABASE}
@@ -93,7 +94,7 @@ services:
 # 📦 Volúmenes
 # ====================================
 volumes:
-  postgres_data:
+  mysql_data:
     driver: local
 
 # ====================================
