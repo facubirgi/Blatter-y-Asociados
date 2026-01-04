@@ -8,13 +8,7 @@ import compression from 'compression';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // 🔒 Seguridad: Helmet.js - Headers de seguridad HTTP
-  app.use(helmet());
-
-  // ⚡ Performance: Compresión gzip
-  app.use(compression());
-
-  // 🌐 Habilitar CORS (Modificado para asegurar conexión con Netlify)
+  // 🌐 CORS debe ir ANTES de helmet para evitar conflictos
   app.enableCors({
     origin: [
       'https://estudioblatter.netlify.app', // 1. Tu frontend en PROD (Netlify)
@@ -25,7 +19,20 @@ async function bootstrap() {
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+    preflightContinue: false,
+    optionsSuccessStatus: 204,
   });
+
+  // 🔒 Seguridad: Helmet.js con configuración ajustada
+  app.use(
+    helmet({
+      crossOriginResourcePolicy: { policy: 'cross-origin' },
+      crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
+    }),
+  );
+
+  // ⚡ Performance: Compresión gzip
+  app.use(compression());
 
   // Validación global de DTOs
   app.useGlobalPipes(
