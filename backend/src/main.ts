@@ -8,36 +8,22 @@ import compression from 'compression';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // 🌐 CORS debe ir ANTES de helmet para evitar conflictos
-  const allowedOrigins = [
-    'https://estudioblatter.netlify.app',    // Frontend en producción (Netlify)
-    'http://localhost:5173',                  // Frontend local (Vite)
-    'http://localhost:3000',                  // Pruebas locales
-    process.env.FRONTEND_URL,                 // Variable de entorno adicional
-  ].filter((url): url is string => Boolean(url));
+  // 🌐 CORS - CONFIGURACIÓN SIMPLIFICADA PARA DEBUG
+  console.log('🌐 Configurando CORS...');
+  console.log('📍 FRONTEND_URL:', process.env.FRONTEND_URL);
+  console.log('📍 NODE_ENV:', process.env.NODE_ENV);
 
   app.enableCors({
-    origin: (origin, callback) => {
-      // Permitir requests sin origin (como Postman, mobile apps, etc.)
-      if (!origin) {
-        callback(null, true);
-        return;
-      }
-
-      if (allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        console.warn(`❌ CORS bloqueó origen no permitido: ${origin}`);
-        callback(new Error('Not allowed by CORS'));
-      }
-    },
-    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+    origin: true, // TEMPORALMENTE permitir todos los orígenes para debug
     credentials: true,
-    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With'],
     exposedHeaders: ['Authorization'],
     preflightContinue: false,
     optionsSuccessStatus: 204,
   });
+
+  console.log('✅ CORS configurado correctamente');
 
   // 🔒 Seguridad: Helmet.js con configuración ajustada
   app.use(
