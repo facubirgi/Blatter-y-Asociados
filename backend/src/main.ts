@@ -4,41 +4,40 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import helmet from 'helmet';
 import compression from 'compression';
+import cors from 'cors';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // 🌐 CORS - CONFIGURACIÓN MÁS EXPLÍCITA
-  console.log('🌐 Configurando CORS...');
+  // 🌐 CORS - Usando middleware Express CORS directamente
+  console.log('🌐 Configurando CORS con Express...');
   console.log('📍 FRONTEND_URL:', process.env.FRONTEND_URL);
   console.log('📍 NODE_ENV:', process.env.NODE_ENV);
 
-  app.enableCors({
-    origin: (origin, callback) => {
-      console.log('🔍 CORS Request from origin:', origin);
-      // Permitir TODOS los orígenes temporalmente
-      callback(null, true);
-    },
-    credentials: true,
-    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
-    allowedHeaders: [
-      'Content-Type',
-      'Authorization',
-      'Accept',
-      'Origin',
-      'X-Requested-With',
-      'Access-Control-Allow-Origin',
-      'Access-Control-Allow-Credentials',
-      'Access-Control-Allow-Headers',
-      'Access-Control-Allow-Methods',
-    ],
-    exposedHeaders: ['Authorization'],
-    preflightContinue: false,
-    optionsSuccessStatus: 200, // Cambio de 204 a 200
-    maxAge: 86400, // Cache preflight por 24 horas
-  });
+  // Usar el middleware cors de Express directamente
+  app.use(
+    cors({
+      origin: (origin, callback) => {
+        console.log('🔍 CORS Request from origin:', origin);
+        // Permitir TODOS los orígenes temporalmente para debug
+        callback(null, true);
+      },
+      credentials: true,
+      methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+      allowedHeaders: [
+        'Content-Type',
+        'Authorization',
+        'Accept',
+        'Origin',
+        'X-Requested-With',
+      ],
+      exposedHeaders: ['Authorization'],
+      optionsSuccessStatus: 200,
+      maxAge: 86400,
+    }),
+  );
 
-  console.log('✅ CORS configurado correctamente');
+  console.log('✅ CORS configurado con Express middleware');
 
   // 🔒 Seguridad: Helmet.js TEMPORALMENTE DESACTIVADO PARA DEBUG
   // app.use(
