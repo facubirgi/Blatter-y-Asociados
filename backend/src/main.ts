@@ -25,13 +25,14 @@ async function bootstrap() {
 
   console.log('✅ CORS configurado correctamente');
 
-  // 🔒 Seguridad: Helmet.js con configuración ajustada
-  app.use(
-    helmet({
-      crossOriginResourcePolicy: { policy: 'cross-origin' },
-      crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
-    }),
-  );
+  // 🔒 Seguridad: Helmet.js TEMPORALMENTE DESACTIVADO PARA DEBUG
+  // app.use(
+  //   helmet({
+  //     crossOriginResourcePolicy: { policy: 'cross-origin' },
+  //     crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
+  //   }),
+  // );
+  console.log('⚠️ Helmet desactivado temporalmente para debug');
 
   // ⚡ Performance: Compresión gzip
   app.use(compression());
