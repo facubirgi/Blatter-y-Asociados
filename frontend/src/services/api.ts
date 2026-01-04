@@ -7,6 +7,7 @@ export const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true, // ✅ CRÍTICO: Necesario para CORS con credentials
 });
 
 // Interceptor para agregar el token a todas las peticiones
