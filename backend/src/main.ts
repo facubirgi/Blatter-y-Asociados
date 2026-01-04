@@ -8,19 +8,34 @@ import compression from 'compression';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // 🌐 CORS - CONFIGURACIÓN SIMPLIFICADA PARA DEBUG
+  // 🌐 CORS - CONFIGURACIÓN MÁS EXPLÍCITA
   console.log('🌐 Configurando CORS...');
   console.log('📍 FRONTEND_URL:', process.env.FRONTEND_URL);
   console.log('📍 NODE_ENV:', process.env.NODE_ENV);
 
   app.enableCors({
-    origin: true, // TEMPORALMENTE permitir todos los orígenes para debug
+    origin: (origin, callback) => {
+      console.log('🔍 CORS Request from origin:', origin);
+      // Permitir TODOS los orígenes temporalmente
+      callback(null, true);
+    },
     credentials: true,
     methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'Accept',
+      'Origin',
+      'X-Requested-With',
+      'Access-Control-Allow-Origin',
+      'Access-Control-Allow-Credentials',
+      'Access-Control-Allow-Headers',
+      'Access-Control-Allow-Methods',
+    ],
     exposedHeaders: ['Authorization'],
     preflightContinue: false,
-    optionsSuccessStatus: 204,
+    optionsSuccessStatus: 200, // Cambio de 204 a 200
+    maxAge: 86400, // Cache preflight por 24 horas
   });
 
   console.log('✅ CORS configurado correctamente');
