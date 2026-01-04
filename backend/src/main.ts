@@ -2,42 +2,21 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
-import helmet from 'helmet';
+// import helmet from 'helmet'; // Temporalmente desactivado
 import compression from 'compression';
-import cors from 'cors';
+// import cors from 'cors'; // Ya no se usa, CORS habilitado en NestFactory.create()
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
-
-  // 🌐 CORS - Usando middleware Express CORS directamente
-  console.log('🌐 Configurando CORS con Express...');
+  // 🌐 Habilitar CORS desde la creación de la app
+  console.log('🌐 Creando app con CORS habilitado...');
   console.log('📍 FRONTEND_URL:', process.env.FRONTEND_URL);
   console.log('📍 NODE_ENV:', process.env.NODE_ENV);
 
-  // Usar el middleware cors de Express directamente
-  app.use(
-    cors({
-      origin: (origin, callback) => {
-        console.log('🔍 CORS Request from origin:', origin);
-        // Permitir TODOS los orígenes temporalmente para debug
-        callback(null, true);
-      },
-      credentials: true,
-      methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
-      allowedHeaders: [
-        'Content-Type',
-        'Authorization',
-        'Accept',
-        'Origin',
-        'X-Requested-With',
-      ],
-      exposedHeaders: ['Authorization'],
-      optionsSuccessStatus: 200,
-      maxAge: 86400,
-    }),
-  );
+  const app = await NestFactory.create(AppModule, {
+    cors: true, // Habilitar CORS desde el inicio
+  });
 
-  console.log('✅ CORS configurado con Express middleware');
+  console.log('✅ App creada con CORS habilitado');
 
   // 🔒 Seguridad: Helmet.js TEMPORALMENTE DESACTIVADO PARA DEBUG
   // app.use(
