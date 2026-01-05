@@ -12,8 +12,19 @@ async function bootstrap() {
   console.log('📍 FRONTEND_URL:', process.env.FRONTEND_URL);
   console.log('📍 NODE_ENV:', process.env.NODE_ENV);
 
+  // CORS configurado con origen específico (requerido para credentials)
   const app = await NestFactory.create(AppModule, {
-    cors: true, // Habilitar CORS desde el inicio
+    cors: {
+      origin: [
+        'https://estudioblatter.netlify.app',
+        'http://localhost:5173',
+        'http://localhost:3000',
+      ],
+      credentials: true,
+      methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+      exposedHeaders: ['Authorization'],
+    },
   });
 
   console.log('✅ App creada con CORS habilitado');
