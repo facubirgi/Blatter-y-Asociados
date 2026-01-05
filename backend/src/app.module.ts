@@ -64,11 +64,11 @@ import { HealthModule } from './health/health.module';
   ],
   controllers: [],
   providers: [
-    // 🛡️ Aplicar rate limiting globalmente a toda la aplicación
-    {
-      provide: APP_GUARD,
-      useClass: ThrottlerGuard,
-    },
+    // 🛡️ Rate limiting TEMPORALMENTE DESACTIVADO para debug
+    // {
+    //   provide: APP_GUARD,
+    //   useClass: ThrottlerGuard,
+    // },
   ],
 })
 export class AppModule {}
