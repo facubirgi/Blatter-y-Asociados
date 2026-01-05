@@ -51,8 +51,8 @@ import { HealthModule } from './health/health.module';
         password: configService.get('DB_PASSWORD'),
         database: configService.get('DB_DATABASE'),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        synchronize: configService.get('NODE_ENV') !== 'production', // Solo en desarrollo
-        logging: configService.get('NODE_ENV') === 'development',
+        synchronize: true, // TEMPORALMENTE true para crear tablas en Railway
+        logging: true, // Activar logging para ver qué pasa
       }),
     }),
 
