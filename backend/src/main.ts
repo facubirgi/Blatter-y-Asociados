@@ -2,7 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
-// import helmet from 'helmet'; // Temporalmente desactivado
+import helmet from 'helmet';
 import compression from 'compression';
 // import cors from 'cors'; // Ya no se usa, CORS habilitado en NestFactory.create()
 
@@ -31,14 +31,14 @@ async function bootstrap() {
 
   console.log('✅ CORS configurado correctamente');
 
-  // 🔒 Seguridad: Helmet.js TEMPORALMENTE DESACTIVADO PARA DEBUG
-  // app.use(
-  //   helmet({
-  //     crossOriginResourcePolicy: { policy: 'cross-origin' },
-  //     crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
-  //   }),
-  // );
-  console.log('⚠️ Helmet desactivado temporalmente para debug');
+  // 🔒 Seguridad: Helmet.js
+  app.use(
+    helmet({
+      crossOriginResourcePolicy: { policy: 'cross-origin' },
+      crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
+    }),
+  );
+  console.log('✅ Helmet activado para seguridad HTTP');
 
   // ⚡ Performance: Compresión gzip
   app.use(compression());

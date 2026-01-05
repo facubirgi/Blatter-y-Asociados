@@ -51,8 +51,8 @@ import { HealthModule } from './health/health.module';
         password: configService.get('DB_PASSWORD'),
         database: configService.get('DB_DATABASE'),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        synchronize: true, // TEMPORALMENTE true para crear tablas en Railway
-        logging: true, // Activar logging para ver qué pasa
+        synchronize: false, // ⚠️ NUNCA usar true en producción
+        logging: false, // Desactivar logging en producción
       }),
     }),
 
@@ -64,11 +64,11 @@ import { HealthModule } from './health/health.module';
   ],
   controllers: [],
   providers: [
-    // 🛡️ Rate limiting TEMPORALMENTE DESACTIVADO para debug
-    // {
-    //   provide: APP_GUARD,
-    //   useClass: ThrottlerGuard,
-    // },
+    // 🛡️ Rate limiting global
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
   ],
 })
 export class AppModule {}
